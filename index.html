@@ -3784,6 +3784,22 @@ const RE_INV_NO  = /RA[CČ]UN\s*BR\.?\s*:?\s*([0-9A-Za-z]+(?:[-\/][0-9A-Za-z]+){
 const RE_INV_DAT = /DATUM\s*RA[CČ]UNA\s*:?\s*(\d{1,2}\s*\.\s*\d{1,2}\s*\.\s*\d{2,4})/i;
 const RE_INV_ROK = /(?:ROK\s*PLA[CĆ]ANJA|DATUM\s*DOSPIJE[CĆ]A|VALUTA\s*PLA[CĆ]ANJA|DOSPIJE[CĆ]E)\s*:?\s*(\d{1,2}\s*\.\s*\d{1,2}\s*\.\s*\d{2,4})/i;
 const RE_INV_TOT = /(?:UKUPAN\s*IZNOS\s*NAPLATE|UKUPNO\s*ZA\s*(?:PLATITI|NAPLATU)|ZA\s*PLATITI|SVEUKUPNO|UKUPNO\s*S\s*PDV)\s*:?\s*([\d.,]+)/i;
+/* Iznos PDV-a s računa. Solo ga ispisuje kao „Porez 25%, osnovica 60,00 €: 15,00 €",
+   drugi programi kao „Iznos PDV-a" ili samo „PDV". Ako nijedno ne uhvati, računa se
+   kao razlika ukupnog iznosa i osnovice. */
+const RE_INV_POR  = /POREZ\s*\d{1,2}(?:[.,]\d+)?\s*%[^:\n]*:\s*([\d.,]+)/i;
+const RE_INV_PDV  = /(?:IZNOS\s*PDV(?:\s*-?\s*A)?|UKUPNO\s*PDV|PDV\s*(?:25|13|5)(?:[.,]\d+)?\s*%)\s*:?\s*([\d.,]+)/i;
+const RE_INV_PDV2 = /\bPDV\b\s*:?\s*([\d.,]+)/i;
+const RE_INV_BASE = /(?:UKUPNO\s*BEZ\s*POREZA|OSNOVICA|UKUPNO\s*BEZ\s*PDV)\s*:?\s*([\d.,]+)/i;
+
+/** PDV s računa: jaka oznaka → slabija → razlika ukupno − osnovica */
+function invPdv(txt, amt){
+  const m = txt.match(RE_INV_POR) || txt.match(RE_INV_PDV) || txt.match(RE_INV_PDV2);
+  if(m){ const v = pn(m[1])||0; if(v>0 && v<amt) return Math.round(v*100)/100; }
+  const b = txt.match(RE_INV_BASE);
+  if(b){ const o = pn(b[1])||0; if(o>0 && amt>o) return Math.round((amt-o)*100)/100; }
+  return 0;
+}
 
 /** Prepoznaje je li datoteka pojedinačni račun (ili više njih), a ne popis */
 function looksLikeInvoiceDoc(lines){
@@ -3821,7 +3837,7 @@ function parseInvoiceDocs(lines, cat){
       id:uid(), dt:dt, dts:fmtDY(dt), amt:amt, desc:opis, broj:broj, kupac:kupac,
       v: rok?fmtD(rok):'', p:'', naplacen:false,
       cat:cat||'prihodi_grupe', use:true, dir:'in', doc:true,
-      pv: mPv ? pn(mPv[1]) : 0
+      pv: invPdv(txt, amt)
     };
     it.dup = isDuplicate({dt:it.dt, amt:Math.abs(it.amt), desc:it.desc});
     if(it.dup==='tocno') it.use=false;
