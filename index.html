@@ -5292,8 +5292,29 @@ function ulzTotal(txt){
       const v=a.filter(x=>x!==0); if(v.length){ base+=Math.max.apply(null,v); imaBase=true; }
       return;
     }
-    if(L_WEAK.test(l)) a.forEach(v=>{ if(v>weak) weak=v; });
+    if(L_WEAK.test(l)){
+      if(a.length) a.forEach(v=>{ if(v>weak) weak=v; });
+      else {
+        /* oznaka „Ukupno" na lijevoj, iznos na desnoj strani papira — pdf.js ih
+           zna razdvojiti u dva retka, pa se gleda i sljedeći redak */
+        for(let k=ix+1;k<Math.min(ix+3,lines.length);k++){
+          const b=moneyIn(lines[k]);
+          if(b.length){ b.forEach(v=>{ if(v>weak) weak=v; }); break; }
+        }
+      }
+    }
   });
+
+  /* svi iznosi u dokumentu — zadnja linija obrane i prijedlozi za ručni odabir */
+  const svi=[];
+  lines.forEach(l=>{
+    if(/IBAN|HR\d{2}\s?\d|BROJ\s*RA[CČ]UNA\s*:?\s*HR/i.test(l)) return;
+    /* datumi i vrijeme nisu iznosi — „25.09.2026." ne smije postati 25,09 */
+    const m=l.replace(/\b\d{1,2}\s*[.\/]\s*\d{1,2}\s*[.\/]\s*\d{2,4}\.?/g,' ')
+             .replace(/\b\d{1,2}:\d{2}(:\d{2})?\b/g,' ');
+    moneyIn(m).forEach(v=>{ if(v>0) svi.push(v); });
+  });
+  const kand=svi.filter((v,i)=>svi.indexOf(v)===i).sort((a,b)=>b-a).slice(0,6);
 
   const recon = (imaBase && imaVat) ? Math.round((base+vat)*100)/100 : null;
   const blizu = (a,b)=>Math.abs(a-b)<0.02;
@@ -5312,8 +5333,10 @@ function ulzTotal(txt){
   } else if(recon!==null){ amt=recon; izvor='osnovica+PDV'; }
   else if(imaBase && !imaVat && base>0){ amt=base; izvor='slabo'; }
   else { amt=weak; izvor='slabo'; }
+  /* ništa nije uhvatilo — uzmi najveći iznos u dokumentu, ali označi za provjeru */
+  if(!amt && kand.length){ amt=kand[0]; izvor='najveci'; }
 
-  return {amt:Math.round(amt*100)/100, cur:cur, izvor:izvor,
+  return {amt:Math.round(amt*100)/100, cur:cur, izvor:izvor, kand:kand,
           recon:recon, base:imaBase?Math.round(base*100)/100:null, vat:imaVat?Math.round(vat*100)/100:null};
 }
 
@@ -5340,7 +5363,7 @@ function ulzParse(lines, fname){
   const it={
     id:uid(), file:fname, sup:sup.name, oib:sup.oib, broj:broj,
     dt:dt, dts:dt?fmtDY(dt):'', rok:rok, v:rok?fmtD(rok):'',
-    amt:tot.amt, cur:tot.cur, izvor:tot.izvor, base:tot.base, vat:tot.vat,
+    amt:tot.amt, cur:tot.cur, izvor:tot.izvor, base:tot.base, vat:tot.vat||0, kand:tot.kand||[],
     desc:desc, cat:cls.cat, conf:cls.conf, flag:cls.flag, use:true, predracun:predracun,
     mi: dt ? dt.m-1 : null,          // trošak se knjiži u mjesec datuma računa
     problemi:[]
@@ -5348,6 +5371,7 @@ function ulzParse(lines, fname){
   if(!sup.name)   it.problemi.push('dobavljač nije prepoznat');
   if(!dt)         it.problemi.push('datum računa nije pronađen');
   if(!it.amt)     it.problemi.push('iznos nije pronađen');
+  else if(tot.izvor==='najveci') it.problemi.push('iznos nije bio označen — uzet je najveći u dokumentu, obavezno provjeri');
   else if(tot.izvor==='slabo') it.problemi.push('iznos nije jasno označen — provjeri je li s PDV-om');
   else if(tot.izvor==='osnovica+PDV' && tot.vat) it.problemi.push('iznos je osnovica '+nf2(tot.base)+' + PDV '+nf2(tot.vat));
   if(tot.cur!=='EUR') it.problemi.push('račun je u '+tot.cur+' — upiši iznos u EUR s izvoda');
@@ -5439,11 +5463,19 @@ function ulzRender(){
         +MN.map((m,ix)=>'<option'+(ix===it.mi?' selected':'')+'>'+MR[ix]+'</option>').join('')
         +'</select></td>'
       +'<td>'+inp('v',it.v,88)+'</td>'
-      +'<td>'+inp('amt',it.amt?nf2(it.amt):'',100,'text-align:right;font-weight:700;color:var(--neg)')+'</td>'
+      +'<td>'+inp('amt',it.amt?nf2(it.amt):'',100,'text-align:right;font-weight:700;color:var(--neg)'
+        +(it.amt?'':';border-color:var(--neg);background:var(--neg-bg,transparent)'))+'</td>'
       +'<td class="l"><select onchange="ulzCat(\''+it.id+'\',this.value)" style="font-size:11px;padding:4px 6px">'
         +opts.replace('value="'+it.cat+'"','value="'+it.cat+'" selected')+'</select></td>'
       +'<td>'+st+'</td></tr>');
-    if(it.problemi.length) h.push('<tr><td></td><td colspan="8" class="l" style="padding:0 12px 9px;font-size:10.5px;color:var(--warn)">↳ '+esc(it.problemi.join(' · '))+'</td></tr>');
+    /* iznosi pronađeni u dokumentu — klik ih upisuje, da se ne prepisuje rukom */
+    const kand=(it.kand||[]).filter(v=>Math.abs(v-(it.amt||0))>0.005).slice(0,5);
+    const nudi = kand.length ? '<div style="margin-top:4px;display:flex;gap:5px;align-items:center;flex-wrap:wrap">'
+      +'<span class="txt-mut" style="font-size:10px">iznosi u dokumentu:</span>'
+      +kand.map(v=>'<button class="chip" style="padding:1px 8px;font-size:10.5px;font-variant-numeric:tabular-nums" '
+        +'onclick="ulzEdit(\''+it.id+'\',\'amt\',\''+nf2(v)+'\')">'+nf2(v)+'</button>').join('')+'</div>' : '';
+    if(it.problemi.length || nudi) h.push('<tr><td></td><td colspan="8" class="l" style="padding:0 12px 9px;font-size:10.5px;color:var(--warn)">'
+      +(it.problemi.length?'↳ '+esc(it.problemi.join(' · ')):'')+nudi+'</td></tr>');
   });
   h.push('</tbody></table>');
   document.getElementById('ulzTable').innerHTML=h.join('');
