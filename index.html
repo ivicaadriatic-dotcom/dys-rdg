@@ -354,7 +354,14 @@ input[type=checkbox].sw-in{display:none}
   .dz svg{width:32px;height:32px}
   .chart{min-width:520px}                  /* graf se pomiče, ne stišće se u nečitko */
   .chart-wrap{overflow-x:auto}
-  #tip{display:none !important}            /* skočni opis nema smisla na dodir */
+  /* skočni opis na dodir — prst preko grafa pokazuje vrijednost */
+  #tip{max-width:min(78vw,300px);padding:10px 13px}
+  #tip .tr{gap:14px;font-size:12px}
+
+  /* ── donja traka: glavno kretanje jednom rukom ─────────────────────────── */
+  #tabbar{display:flex !important}
+  #view{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  #navBtn{display:none !important}                 /* izbornik je sad u traci, pod „Više" */
 }
 @media(max-width:520px){
   .g4{grid-template-columns:repeat(2,minmax(0,1fr)) !important}   /* četiri brojke ostaju 2×2 */
@@ -368,6 +375,45 @@ input[type=checkbox].sw-in{display:none}
   .tw table{font-size:11px}
   th,td{padding:6px 7px !important}
 }
+/* ── donja navigacijska traka (samo na uskim zaslonima) ───────────────────── */
+#tabbar{display:none;position:fixed;left:0;right:0;bottom:0;z-index:18;
+  height:calc(62px + env(safe-area-inset-bottom,0px));
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  background:var(--surf);border-top:1px solid var(--line);
+  box-shadow:0 -6px 22px rgba(10,22,40,.10);
+  align-items:stretch;justify-content:space-around}
+#tabbar button{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;background:none;border:0;cursor:pointer;
+  color:var(--mut);font-size:10px;font-weight:600;letter-spacing:.1px;position:relative;
+  -webkit-tap-highlight-color:transparent;font-family:inherit;padding:0}
+#tabbar button svg{width:21px;height:21px;stroke-width:1.9}
+#tabbar button.on{color:var(--nav-600)}
+#tabbar .tb-b{position:absolute;top:4px;left:calc(50% + 6px);min-width:16px;height:16px;
+  border-radius:9px;background:var(--neg);color:#fff;font-size:9.5px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;padding:0 4px}
+#tabbar .tb-fab{flex:0 0 62px}
+#tabbar .tb-fab i{width:46px;height:46px;border-radius:50%;background:var(--nav-600);color:#fff;
+  display:flex;align-items:center;justify-content:center;margin-top:-16px;
+  box-shadow:0 6px 16px rgba(15,30,53,.34)}
+#tabbar .tb-fab i svg{width:24px;height:24px;stroke-width:2.2}
+#tabbar .tb-fab span{margin-top:-2px}
+
+/* ladica s brzim radnjama koju otvara + */
+#fabSheet{position:fixed;inset:0;z-index:30;display:none}
+#fabSheet.on{display:block}
+#fabSheet .sc{position:absolute;inset:0;background:rgba(10,22,40,.45);backdrop-filter:blur(2px)}
+#fabSheet .sh{position:absolute;left:0;right:0;bottom:0;background:var(--surf);
+  border-radius:18px 18px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom,0px));
+  box-shadow:0 -10px 40px rgba(0,0,0,.3)}
+#fabSheet .grip{width:38px;height:4px;border-radius:2px;background:var(--line-2);margin:0 auto 14px}
+#fabSheet .sh-t{font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+  color:var(--mut);margin:0 2px 10px}
+#fabSheet .fa{display:flex;align-items:center;gap:12px;width:100%;padding:13px 14px;margin-bottom:8px;
+  background:var(--surf-2);border:1px solid var(--line);border-radius:12px;cursor:pointer;
+  font-family:inherit;font-size:14px;font-weight:600;color:var(--tx);text-align:left}
+#fabSheet .fa svg{width:19px;height:19px;flex:0 0 19px;color:var(--nav-600)}
+#fabSheet .fa small{display:block;font-weight:400;font-size:11px;color:var(--mut);margin-top:1px}
+
 /* gumb za izbornik — na računalu skriven */
 #navBtn{display:none;width:34px;height:34px;flex:0 0 34px;border-radius:9px;border:1px solid var(--line);
   background:var(--surf-2);color:var(--tx);align-items:center;justify-content:center;cursor:pointer}
@@ -417,6 +463,8 @@ input[type=checkbox].sw-in{display:none}
   <div id="view"></div>
 </div>
 <div id="navScrim" onclick="toggleNav(0)"></div>
+<nav id="tabbar"></nav>
+<div id="fabSheet"><div class="sc" onclick="fabSheet(0)"></div><div class="sh" id="fabSheetBody"></div></div>
 <div id="tip"></div>
 <div class="toast" id="toast"></div>
 
@@ -463,6 +511,7 @@ const IC = {
   euro:  I('<path d="M4 10h12M4 14h9"/><path d="M19 5.7A7.5 7.5 0 0 0 7.5 12 7.5 7.5 0 0 0 19 18.3"/>'),
   brain: I('<path d="M12 5a3 3 0 0 0-3 3 3 3 0 0 0-2 5.2A3 3 0 0 0 9.5 19 2.5 2.5 0 0 0 12 21z"/><path d="M12 5a3 3 0 0 1 3 3 3 3 0 0 1 2 5.2A3 3 0 0 1 14.5 19 2.5 2.5 0 0 1 12 21z"/>'),
   file:  I('<path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M13 2v7h7"/>'),
+  menu:  I('<path d="M4 7h16M4 12h16M4 17h16"/>'),
 };
 
 /* ── Formatiranje ─────────────────────────────────────────────────────────── */
@@ -6430,6 +6479,108 @@ document.addEventListener('keydown', e=>{
 });
 
 cloudBoot();
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILNI RASPORED
+   Donja navigacijska traka za rad jednom rukom i vrijednosti na grafovima
+   na dodir. Na računalu se ništa od ovoga ne prikazuje — traka je skrivena
+   stilom, a dodirni događaji se na mišu ne javljaju.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Pet mjesta u traci; „Više" otvara postojeću ladicu s punim izbornikom. */
+const TAB = [
+  {id:'dash', l:'Početna',   i:'dash'},
+  {id:'rdg',  l:'Račun',     i:'table'},
+  {id:'__fab',l:'Unos',      i:'plus'},
+  {id:'dues', l:'Dospijeća', i:'cal'},
+  {id:'__nav',l:'Više',      i:'menu'},
+];
+
+/* Brze radnje iza gumba + — ono što se radi svaki dan */
+const FAB = [
+  {id:'import', i:'up',   l:'Uvoz izvoda',    s:'PBZ izvod u PDF-u'},
+  {id:'ulz',    i:'doc',  l:'Ulazni račun',   s:'račun dobavljača'},
+  {id:'inv',    i:'file', l:'Izlazni račun',  s:'račun koji izdaješ'},
+  {id:'cat',    i:'doc',  l:'Transakcije',    s:'pregled i ručni unos'},
+];
+
+function tabRender(){
+  const el=document.getElementById('tabbar'); if(!el) return;
+  let nDue=0;
+  try{ const d=getDues(); nDue=d.over.length+d.today.length; }catch(e){}
+  el.innerHTML = TAB.map(t=>{
+    const akt = t.id===VIEW || (t.id==='__nav' && document.body.classList.contains('nav-open'));
+    if(t.id==='__fab')
+      return '<button class="tb-fab" onclick="fabSheet(1)" aria-label="Brze radnje">'
+        +'<i>'+IC[t.i]+'</i><span>'+t.l+'</span></button>';
+    const b = (t.id==='dues' && nDue) ? '<span class="tb-b">'+nDue+'</span>' : '';
+    const akcija = t.id==='__nav' ? 'toggleNav()' : "go('"+t.id+"')";
+    return '<button class="'+(akt?'on':'')+'" onclick="'+akcija+'">'+IC[t.i]+b+'<span>'+t.l+'</span></button>';
+  }).join('');
+}
+
+function fabSheet(on){
+  const o=document.getElementById('fabSheet'), b=document.getElementById('fabSheetBody');
+  if(!o||!b) return;
+  try{ TIP.hide(); }catch(e){}
+  if(on){
+    b.innerHTML='<div class="grip"></div><div class="sh-t">Brzi unos</div>'
+      + FAB.map(f=>'<button class="fa" onclick="fabGo(\''+f.id+'\')">'+IC[f.i]
+        +'<span>'+f.l+'<small>'+f.s+'</small></span></button>').join('');
+    o.classList.add('on');
+  } else o.classList.remove('on');
+}
+function fabGo(id){ fabSheet(0); go(id); }
+
+/* ── vrijednosti na grafovima na dodir ────────────────────────────────────── */
+/* Na računalu opis prati miš. Na dodir nema miša, pa se pod prstom traži
+   element s data-tip (stupci grafa su prozirni pravokutnici pune visine).
+   Pravilo: dodir koji je počeo na grafu i vuče se vodoravno čita vrijednosti i
+   ne pomiče stranicu; vuča nadolje je pomicanje stranice i opis se sklanja. */
+let tipT=null, tipAkt=false, tipPom=false, tipX0=0, tipY0=0;
+function tipPod(t){
+  const el=document.elementFromPoint(t.clientX, t.clientY);
+  return el && el.closest ? el.closest('[data-tip]') : null;
+}
+function tipTouch(){
+  if(tipTouch.spreman) return; tipTouch.spreman=true;
+
+  document.addEventListener('touchstart', e=>{
+    const t=e.touches && e.touches[0]; if(!t) return;
+    const el=tipPod(t);
+    tipAkt=!!el; tipPom=false; tipX0=t.clientX; tipY0=t.clientY;
+    if(el){ if(tipT){ clearTimeout(tipT); tipT=null; }
+      TIP.show(t.clientX, t.clientY, el.getAttribute('data-tip')); }
+    else TIP.hide();
+  }, {passive:true});
+
+  document.addEventListener('touchmove', e=>{
+    if(!tipAkt) return;
+    const t=e.touches && e.touches[0]; if(!t) return;
+    const dx=Math.abs(t.clientX-tipX0), dy=Math.abs(t.clientY-tipY0);
+    if(!tipPom && dy>12 && dy>dx){ tipPom=true; tipAkt=false; TIP.hide(); return; }
+    if(dx<7 && dy<7) return;
+    if(e.cancelable) e.preventDefault();      /* prelazak po grafu ne pomiče stranicu */
+    const el=tipPod(t);
+    if(el) TIP.show(t.clientX, t.clientY, el.getAttribute('data-tip'));
+  }, {passive:false});
+
+  const kraj=()=>{ tipAkt=false; if(tipT) clearTimeout(tipT);
+    tipT=setTimeout(()=>TIP.hide(), 2600); };
+  document.addEventListener('touchend', kraj, {passive:true});
+  document.addEventListener('touchcancel', ()=>{ tipAkt=false; TIP.hide(); }, {passive:true});
+}
+
+/* traka se osvježava zajedno s prikazom; promjena prikaza sklanja skočni opis */
+const _render = render;
+render = function(){ _render.apply(this, arguments); try{ tabRender(); }catch(e){} };
+const _toggleNav = toggleNav;
+toggleNav = function(){ _toggleNav.apply(this, arguments); try{ tabRender(); }catch(e){} };
+const _go = go;
+go = function(){ try{ TIP.hide(); }catch(e){} return _go.apply(this, arguments); };
+
+tipTouch();
+setTimeout(()=>{ try{ tabRender(); }catch(e){} }, 300);
 
 </script>
 </body>
