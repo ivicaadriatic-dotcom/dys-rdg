@@ -9,6 +9,7 @@
 :root{
   --nav-900:#0a1628; --nav-800:#0f1e35; --nav-700:#16294a; --nav-600:#1f3a63;
   --nav-500:#2b5088; --nav-400:#4a72ab; --gold:#c8a951; --gold-d:#a88a35;
+  --akc:#1f3a63;                    /* naglasak na tekstu i ikonama mobilnog sloja */
   --bg:#f6f7fa; --surf:#ffffff; --surf-2:#fafbfd; --surf-3:#f1f3f8;
   --line:#e8ebf1; --line-2:#f0f2f6;
   --tx:#121826; --tx-2:#5a6478; --tx-3:#98a1b3;
@@ -29,6 +30,7 @@ html[data-theme="dark"]{
   --tx:#e8eef6; --tx-2:#9db0c8; --tx-3:#6b7f99;
   --pos:#4ade80;--pos-lt:#3f8a5c;--neg-lt:#a85a5a; --pos-bg:#0e2f1d; --neg:#f87171; --neg-bg:#331717;
   --warn:#fbbf24; --warn-bg:#302614; --info:#60a5fa; --info-bg:#132239;
+  --akc:#7fb0f5;                    /* na tamnoj podlozi navy se ne vidi */
   --c1:#60a5fa; --c2:#38bdf8; --c3:#4ade80; --c4:#a3e635; --c5:#fbbf24;
   --c6:#fb923c; --c7:#f87171; --c8:#a78bfa; --c9:#818cf8; --c10:#f472b6;
   --sh-1:0 1px 3px rgba(0,0,0,.4); --sh-2:0 4px 16px rgba(0,0,0,.4);
@@ -362,6 +364,18 @@ input[type=checkbox].sw-in{display:none}
   #tabbar{display:flex !important}
   #view{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
   #navBtn{display:none !important}                 /* izbornik je sad u traci, pod „Više" */
+
+  /* ── gornja traka: logo i čipovi umjesto cijele stolne alatne trake ────── */
+  #top{display:none !important}                    /* naslov je sad veliki, u sadržaju */
+  #mobTop{display:flex !important}
+  /* sve četiri strane odjednom, inače ih uži upit niže pregazi skraćenim zapisom */
+  #view{padding:calc(58px + env(safe-area-inset-top,0px) + 12px) 12px
+        calc(84px + env(safe-area-inset-bottom,0px)) !important}
+  .mob-h{display:block !important}
+  .kpi-i{display:inline-flex !important}
+  .kpi{padding:15px 15px 14px;border-radius:16px}
+  .kpi-v{font-size:23px !important}
+  .kpi-l{font-size:10.5px;letter-spacing:.2px;text-transform:none;color:var(--mut)}
 }
 @media(max-width:520px){
   .g4{grid-template-columns:repeat(2,minmax(0,1fr)) !important}   /* četiri brojke ostaju 2×2 */
@@ -371,7 +385,6 @@ input[type=checkbox].sw-in{display:none}
   .kpi-v .eur{font-size:9px}
   .kpi-c{font-size:9px;line-height:1.35}
   .kpi-c .pill{font-size:8.5px;padding:1px 4px}
-  #view{padding:10px 10px 80px}
   .tw table{font-size:11px}
   th,td{padding:6px 7px !important}
 }
@@ -387,7 +400,7 @@ input[type=checkbox].sw-in{display:none}
   color:var(--mut);font-size:10px;font-weight:600;letter-spacing:.1px;position:relative;
   -webkit-tap-highlight-color:transparent;font-family:inherit;padding:0}
 #tabbar button svg{width:21px;height:21px;stroke-width:1.9}
-#tabbar button.on{color:var(--nav-600)}
+#tabbar button.on{color:var(--akc)}
 #tabbar .tb-b{position:absolute;top:4px;left:calc(50% + 6px);min-width:16px;height:16px;
   border-radius:9px;background:var(--neg);color:#fff;font-size:9.5px;font-weight:800;
   display:flex;align-items:center;justify-content:center;padding:0 4px}
@@ -407,12 +420,55 @@ input[type=checkbox].sw-in{display:none}
   box-shadow:0 -10px 40px rgba(0,0,0,.3)}
 #fabSheet .grip{width:38px;height:4px;border-radius:2px;background:var(--line-2);margin:0 auto 14px}
 #fabSheet .sh-t{font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
-  color:var(--mut);margin:0 2px 10px}
+  color:var(--mut);margin:0 2px 10px;display:flex;align-items:center}
+#fabSheet .sh-x{margin-left:auto;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);
+  background:var(--surf-2);color:var(--tx-2);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;padding:0}
+#fabSheet .sh-x svg{width:15px;height:15px;stroke-width:2.2}
 #fabSheet .fa{display:flex;align-items:center;gap:12px;width:100%;padding:13px 14px;margin-bottom:8px;
   background:var(--surf-2);border:1px solid var(--line);border-radius:12px;cursor:pointer;
   font-family:inherit;font-size:14px;font-weight:600;color:var(--tx);text-align:left}
-#fabSheet .fa svg{width:19px;height:19px;flex:0 0 19px;color:var(--nav-600)}
+#fabSheet .fa svg{width:19px;height:19px;flex:0 0 19px;color:var(--akc)}
 #fabSheet .fa small{display:block;font-weight:400;font-size:11px;color:var(--mut);margin-top:1px}
+
+/* ── gornja mobilna traka (samo na uskim zaslonima) ───────────────────────── */
+#mobTop{display:none;position:fixed;top:0;left:0;right:0;z-index:18;
+  height:calc(58px + env(safe-area-inset-top,0px));
+  padding:env(safe-area-inset-top,0px) 10px 0;
+  background:var(--surf);border-bottom:1px solid var(--line);
+  align-items:center;gap:7px;box-shadow:0 2px 14px rgba(10,22,40,.06)}
+#mobTop .mt-logo{width:34px;height:34px;flex:0 0 34px;border-radius:9px;overflow:hidden;
+  background:var(--nav-800);color:#fff;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:800;letter-spacing:.3px}
+#mobTop .mt-logo img{width:100%;height:100%;object-fit:cover;display:block}
+#mobTop .mt-r{margin-left:auto;display:flex;align-items:center;gap:6px}
+.mt-chip{display:inline-flex;align-items:center;gap:5px;height:34px;padding:0 12px;border-radius:17px;
+  border:1px solid var(--line);background:var(--surf-2);color:var(--tx);font-family:inherit;
+  font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;
+  -webkit-tap-highlight-color:transparent}
+.mt-chip svg{width:15px;height:15px;stroke-width:2}
+.mt-chip.ico{width:34px;flex:0 0 34px;padding:0;justify-content:center;border-radius:50%}
+
+/* veliki naslov prikaza — zamjenjuje stolnu traku s naslovom */
+.mob-h{display:none;margin:0 2px 15px}
+.mob-h .k{font-size:11px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--akc)}
+.mob-h h1{font-size:29px;font-weight:800;letter-spacing:-1px;margin:3px 0 0;line-height:1.08}
+
+/* obojena ikona u kartici s brojkom — samo na mobitelu */
+.kpi-i{display:none;width:33px;height:33px;border-radius:9px;align-items:center;justify-content:center;
+  color:#fff;margin-bottom:10px}
+.kpi-i svg{width:17px;height:17px;stroke-width:2.2}
+
+/* redak u ladici s kvačicom — razdoblje, godina, izvoz */
+#fabSheet .sh{max-height:84vh;overflow-y:auto}
+#fabSheet .cap{font-size:10.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;
+  color:var(--tx-3);margin:12px 2px 7px}
+#fabSheet .fr{display:flex;align-items:center;gap:10px;width:100%;padding:12px 13px;margin-bottom:6px;
+  background:var(--surf-2);border:1px solid var(--line);border-radius:11px;cursor:pointer;
+  font-family:inherit;font-size:14px;font-weight:600;color:var(--tx);text-align:left}
+#fabSheet .fr svg{width:18px;height:18px;flex:0 0 18px;color:var(--akc)}
+#fabSheet .fr.on{border-color:var(--akc);color:var(--akc)}
+#fabSheet .fr .ok{margin-left:auto;display:flex;color:var(--akc)}
 
 /* gumb za izbornik — na računalu skriven */
 #navBtn{display:none;width:34px;height:34px;flex:0 0 34px;border-radius:9px;border:1px solid var(--line);
@@ -463,6 +519,7 @@ input[type=checkbox].sw-in{display:none}
   <div id="view"></div>
 </div>
 <div id="navScrim" onclick="toggleNav(0)"></div>
+<div id="mobTop"></div>
 <nav id="tabbar"></nav>
 <div id="fabSheet"><div class="sc" onclick="fabSheet(0)"></div><div class="sh" id="fabSheetBody"></div></div>
 <div id="tip"></div>
@@ -512,6 +569,8 @@ const IC = {
   brain: I('<path d="M12 5a3 3 0 0 0-3 3 3 3 0 0 0-2 5.2A3 3 0 0 0 9.5 19 2.5 2.5 0 0 0 12 21z"/><path d="M12 5a3 3 0 0 1 3 3 3 3 0 0 1 2 5.2A3 3 0 0 1 14.5 19 2.5 2.5 0 0 1 12 21z"/>'),
   file:  I('<path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M13 2v7h7"/>'),
   menu:  I('<path d="M4 7h16M4 12h16M4 17h16"/>'),
+  wallet:I('<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H18a2 2 0 0 1 2 2v1"/><path d="M3 7.5V17a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/><path d="M21 10h-4a2 2 0 0 0 0 4h4z"/>'),
+  pct:   I('<path d="M19 5L5 19"/><circle cx="7.5" cy="7.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/>'),
 };
 
 /* ── Formatiranje ─────────────────────────────────────────────────────────── */
@@ -1361,6 +1420,27 @@ function rnOf(s){
   return m ? m[1].replace(/\//g,'-') : '';
 }
 
+/**
+ * Svi brojevi računa navedeni u jednom opisu. Uz obične zapise podnosi i kraticu
+ * kojom banka spaja više računa u jedan nalog: „pl rč 101/111-1-1" znači račune
+ * 101-1-1 i 111-1-1, a ne jedan račun „101-111-1-1".
+ */
+function rnList(s){
+  const u=String(s||'').toUpperCase(), out=[];
+  const dodaj=x=>{ const v=x.replace(/\//g,'-'); if(v && out.indexOf(v)<0) out.push(v); };
+  /* 101/111-1-1  ·  12/13/14-1-1 — više brojeva, zajednički nastavak */
+  const re=/(\d{1,7}(?:\s*\/\s*\d{1,7})+)\s*-\s*([0-9A-Z]{1,6}(?:[-\/][0-9A-Z]{1,6})+)/g;
+  let m;
+  while((m=re.exec(u))){
+    const nast=m[2].replace(/\//g,'-');
+    m[1].split('/').forEach(p=>dodaj(p.trim()+'-'+nast));
+  }
+  /* pojedinačni brojevi bilo gdje u opisu */
+  const re2=/(\d{1,7}(?:[-\/][0-9A-Z]{1,6}){2,})/g;
+  while((m=re2.exec(u))) dodaj(m[1]);
+  return out;
+}
+
 /** Račun je otvoren dok polje PLAĆENO ne sadrži valjan datum */
 function unpaidRow(t){ return !pd(t.p); }
 
@@ -1481,6 +1561,66 @@ function isPayroll(it){
   return payrollDesc(it.desc||it.o||'');
 }
 
+/**
+ * Jedna uplata koja zatvara VIŠE otvorenih računa. Banka takav nalog ispisuje kao
+ * „pl rč 101/111-1-1" uz zbrojeni iznos, pa se bez ovoga u knjizi otvarao novi
+ * prihod umjesto da se dva postojeća računa označe plaćenima.
+ *
+ * Dva puta do rezultata, oba traže da se zbroj poklopi u lipu:
+ *  1. opis navodi brojeve računa — uzimaju se točno ti otvoreni računi;
+ *  2. opis navodi samo partnera — traži se kombinacija 2–3 njegova otvorena
+ *     računa čiji zbroj daje iznos uplate, i to samo ako je takva jedna jedina.
+ */
+function findOpenMulti(it, claimed){
+  const traziPrihod = it.dir==='in';
+  const nd = norm(it.desc), brojevi = rnList(it.desc);
+  const otvoreni=[];
+  for(const k in D.td){
+    const s=secOf(k); if(!s) continue;
+    if(traziPrihod !== (s==='prihod')) continue;
+    (D.td[k]||[]).forEach((arr,mi)=>(arr||[]).forEach(t=>{
+      if(claimed && claimed.indexOf(t)>-1) return;
+      if(!unpaidRow(t)) return;
+      if(!(Number(t.a)>0)) return;
+      const q=pd(t.d);
+      if(q){
+        const y = q.y && q.y>2000 ? q.y : it.dt.y;
+        const dana=(new Date(it.dt.y,it.dt.m-1,it.dt.d) - new Date(y,q.m-1,q.d))/864e5;
+        if(dana < -3 || dana > 400) return;          // uplata prije izdavanja računa
+      }
+      otvoreni.push({cat:k, mi:mi, t:t, rn:rnOf(t.o), a:Math.round((Number(t.a)||0)*100)});
+    }));
+  }
+  if(otvoreni.length<2) return null;
+  const cilj=Math.round(it.amt*100);
+
+  /* 1 — opis navodi brojeve računa */
+  if(brojevi.length>1){
+    const po=[];
+    brojevi.forEach(b=>{
+      const r=otvoreni.find(x=>x.rn && x.rn===b && po.indexOf(x)<0);
+      if(r) po.push(r);
+    });
+    if(po.length>1 && Math.abs(po.reduce((s,x)=>s+x.a,0)-cilj)<=2)
+      return {list:po, why:'broj'};
+  }
+
+  /* 2 — isti partner, jedinstvena kombinacija dva ili tri računa */
+  const p=otvoreni.filter(x=>sharedWord(norm(x.t.o), nd));
+  if(p.length>1 && p.length<=14){
+    const nadeno=[];
+    for(let i=0;i<p.length && nadeno.length<2;i++){
+      for(let j=i+1;j<p.length && nadeno.length<2;j++){
+        if(Math.abs(p[i].a+p[j].a-cilj)<=2){ nadeno.push([p[i],p[j]]); continue; }
+        for(let l=j+1;l<p.length;l++)
+          if(Math.abs(p[i].a+p[j].a+p[l].a-cilj)<=2){ nadeno.push([p[i],p[j],p[l]]); break; }
+      }
+    }
+    if(nadeno.length===1) return {list:nadeno[0], why:'zbroj'};
+  }
+  return null;
+}
+
 function matchOpen(items){
   const claimed=[];
   items.slice().sort((a,b)=>dnum(a.dt)-dnum(b.dt)).forEach(it=>{
@@ -1495,6 +1635,10 @@ function matchOpen(items){
     }
     if(it.dup==='tocno') return;
     const m=findOpenMatch(it, claimed);
+    if(m && !m.near){ it.match=m; it.mode='close'; claimed.push(m.t); return; }
+    /* nijedan pojedinačni račun ne odgovara točno — možda uplata pokriva više njih */
+    const v=findOpenMulti(it, claimed);
+    if(v){ it.multi=v; it.mode='closeN'; v.list.forEach(x=>claimed.push(x.t)); return; }
     if(m){ it.match=m; it.mode='close'; claimed.push(m.t); }
   });
 }
@@ -1824,6 +1968,9 @@ function importAudit(){
     if(!q) return out.push({row:pr, kind:'ok'});
     const it={desc:String(pr.t.o||''), amt:Number(pr.t.a)||0, dir:pr.dir, dt:q, cat:pr.cat};
     const m=findOpenMatch(it, claimed.concat([pr.t]));
+    if(m && !m.near){ claimed.push(m.t); return out.push({row:pr, kind:'spoji', inv:m}); }
+    const v=findOpenMulti(it, claimed.concat([pr.t]));
+    if(v){ v.list.forEach(x=>claimed.push(x.t)); return out.push({row:pr, kind:'spojiN', invs:v}); }
     if(m){ claimed.push(m.t); return out.push({row:pr, kind:'spoji', inv:m}); }
     const d=dupOfManual(pr);
     if(d) return out.push({row:pr, kind:'duplikat', dupOf:d});
@@ -1848,6 +1995,18 @@ function applyMerge(a){
   if(a.inv.near) a.inv.t.a = Math.round((Number(a.row.t.a)||0)*100)/100;
   dropRow(a.row);
 }
+/** Uplata koja pokriva više računa — svakom se upisuje datum, uvezeni redak se briše */
+function applyMergeN(a){
+  const dat=a.row.t.p||a.row.t.d;
+  a.invs.list.forEach(c=>{ c.t.p=dat; if(!pd(c.t.v)) c.t.v=dat; });
+  dropRow(a.row);
+}
+function auditMergeN(ix){
+  const a=AUDIT[ix]; if(!a||a.kind!=='spojiN') return;
+  const n=a.invs.list.length, dat=a.row.t.p||a.row.t.d;
+  applyMergeN(a); save(true); reRender();
+  toast('Zatvoreno '+n+' računa — datum '+dat+' upisan u polje PLAĆENO');
+}
 /** Odabir drugog otvorenog računa kad partner ima više stavki istog iznosa */
 function auditPick(ix, sel){
   const a=AUDIT[ix]; if(!a||!a.inv) return;
@@ -1869,9 +2028,11 @@ function auditAll(kind){
   const list=AUDIT.filter(a=>a.kind===kind);
   if(!list.length) return;
   let iz=0;
-  list.forEach(a=>{ if(kind==='spoji') applyMerge(a); else { iz+=Number(a.row.t.a)||0; dropRow(a.row); } });
+  list.forEach(a=>{ if(kind==='spoji') applyMerge(a); else if(kind==='spojiN') applyMergeN(a);
+                    else { iz+=Number(a.row.t.a)||0; dropRow(a.row); } });
   save(true); reRender();
   toast(kind==='spoji' ? 'Spojeno '+list.length+' uplata s otvorenim računima'
+      : kind==='spojiN' ? 'Spojeno '+list.length+' uplata koje pokrivaju više računa'
       : kind==='place' ? 'Uklonjeno '+list.length+' stavaka plaća ('+nf2(iz)+' EUR) — plaće ostaju onako kako su unesene u rubrici Djelatnici'
                        : 'Obrisano '+list.length+' dvostruko knjiženih redaka');
 }
@@ -1912,6 +2073,7 @@ function auditEffectBox(){
 function auditCard(){
   AUDIT=importAudit();
   const nS=AUDIT.filter(a=>a.kind==='spoji').length;
+  const nN=AUDIT.filter(a=>a.kind==='spojiN').length;
   const nD=AUDIT.filter(a=>a.kind==='duplikat').length;
   const pL=AUDIT.filter(a=>a.kind==='place');
   const nP=pL.length, izP=pL.reduce((s,a)=>s+(Number(a.row.t.a)||0),0);
@@ -1929,6 +2091,12 @@ function auditCard(){
       if(a.inv.near) desno+=' <span class="bdg wrn" style="font-size:9px" title="Izvod je mjerodavan — iznos računa se ispravlja">iznos '
         +nf2(Number(a.inv.t.a)||0)+' → '+nf2(Number(t.a)||0)+'</span>';
       akcija='<button class="btn sm pri" onclick="auditMerge('+ix+')">Spoji</button>';
+    } else if(a.kind==='spojiN'){
+      bdg='<span class="bdg wrn">pokriva '+a.invs.list.length+' računa</span>';
+      desno='<div>'+(a.invs.why==='broj'?'brojevi računa su u opisu uplate':'zbroj otvorenih računa istog partnera')+':</div>'
+        + a.invs.list.map(c=>'<div style="margin-left:10px">• '+esc(String(c.t.o||'').slice(0,44))
+            +'<span class="txt-mut"> · '+esc(c.t.d||'')+' · '+nf2(Number(c.t.a)||0)+' EUR</span></div>').join('');
+      akcija='<button class="btn sm pri" onclick="auditMergeN('+ix+')">Spoji</button>';
     } else if(a.kind==='place'){
       bdg='<span class="bdg neg">plaća</span>';
       desno='plaće se unose ručno u rubrici <strong>Djelatnici</strong>'
@@ -1954,6 +2122,7 @@ function auditCard(){
   const glava = (nS||nD||nP)
     ? '<div class="alert d" style="margin-bottom:12px"><div class="alert-i">'+IC.warn+'</div><div>'
       +'<div class="alert-t">'+[(nS?nS+' uplata pripada računu koji je već u knjizi':''),
+         (nN?nN+' uplata pokriva više otvorenih računa':''),
          (nD?nD+' stavki je knjiženo dvaput':''),
          (nP?nP+' stavaka plaća ('+nf2(izP)+' EUR) ne treba biti u knjizi':'')].filter(Boolean).join(' · ')+'</div>'
       +'<div class="alert-b">Dok se ovo ne sredi, mjesečni prihod i rashod su uvećani za te iznose. '
@@ -1972,6 +2141,7 @@ function auditCard(){
     +(nS?' · <strong>'+nS+'</strong> za spajanje':'')+(nD?' · <strong>'+nD+'</strong> dvostruko':'')
     +(nP?' · <strong>'+nP+'</strong> plaće':'')+'</div></div>'
     +(nS?'<button class="btn gold" onclick="auditAll(\'spoji\')">Spoji sve</button>':'')
+    +(nN?'<button class="btn gold" onclick="auditAll(\'spojiN\')">Spoji višestruke</button>':'')
     +(nP?'<button class="btn dgr" onclick="auditAll(\'place\')">Obriši stavke plaća</button>':'')
     +(nD?'<button class="btn dgr" onclick="auditAll(\'duplikat\')">Obriši dvostruke</button>':'')
     +'<button class="btn sm dgr" onclick="auditDropAll()" title="Vraća brojke na stanje prije uvoza">Ukloni sve uvezene</button>'
@@ -2247,6 +2417,7 @@ function renderReview(){
   vis.forEach(it=>{
     const badge = it.mode==='place' ? '<span class="bdg inf" title="Ne knjiži se — upisuje se samo datum isplate plaća">datum isplate plaća</span>'
       : it.mode==='close' ? '<span class="bdg pos" title="Ne otvara novi redak — upisuje datum plaćanja u postojeći račun">zatvara račun</span>'
+      : it.mode==='closeN' ? '<span class="bdg pos" title="Jedna uplata pokriva više otvorenih računa — upisuje im datum plaćanja">zatvara '+it.multi.list.length+' računa</span>'
       : it.dup==='tocno' ? '<span class="bdg wrn">već uneseno</span>'
       : it.dup==='mozda' ? '<span class="bdg wrn" title="Isti dan i isti iznos, ali drugačiji opis">isti dan i iznos</span>'
       : it.flag==='fin' ? '<span class="bdg inf">financiranje</span>'
@@ -2264,9 +2435,11 @@ function renderReview(){
         +'" onclick="revDir(\''+it.id+'\')">'+(it.dir==='in'?'prihod':'rashod')+'</button></td>'
       +'<td class="l" style="font-size:11.5px;max-width:340px" title="'+esc(it.raw)+'">'
         +'<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(it.desc)+'</div>'
-        +(it.match ? matchNote(it) : it.pm!==undefined ? placeNote(it) : '')+'</td>'
+        +(it.multi ? multiNote(it) : it.match ? matchNote(it) : it.pm!==undefined ? placeNote(it) : '')+'</td>'
       +'<td class="l">'+(it.mode==='place'
         ? '<span class="txt-mut" style="font-size:11px">plaće — ne knjiži se</span>'
+        : it.mode==='closeN'
+        ? '<span class="txt-mut" style="font-size:11px">'+esc(catLbl(it.multi.list[0].cat))+'</span>'
         : it.mode==='close'
         ? '<span class="txt-mut" style="font-size:11px">'+esc(catLbl(it.match.cat))+'</span>'
         : '<select onchange="revCat(\''+it.id+'\',this.value)" style="font-size:11px;padding:4px 6px">'
@@ -2277,8 +2450,8 @@ function renderReview(){
   document.getElementById('revTable').innerHTML=h.join('');
 
   const sel=its.filter(i=>i.use);
-  const nov=sel.filter(i=>i.mode!=='close' && i.mode!=='place');
-  const zat=sel.filter(i=>i.mode==='close');
+  const nov=sel.filter(i=>i.mode!=='close' && i.mode!=='closeN' && i.mode!=='place');
+  const zat=sel.filter(i=>i.mode==='close' || i.mode==='closeN');
   const pl =sel.filter(i=>i.mode==='place');
   const sIn=nov.filter(i=>i.dir==='in').reduce((s,i)=>s+i.amt,0);
   const sOut=nov.filter(i=>i.dir==='out').reduce((s,i)=>s+i.amt,0);
@@ -2306,6 +2479,25 @@ function revPm(id, ix){
   i.pm=ix; i.mode='place'; renderReview();
 }
 function catLbl(k){ const r=D.rows.find(x=>x.k===k); return r?r.l:k; }
+
+/** Redak ispod opisa kad jedna uplata pokriva više otvorenih računa */
+function multiNote(it){
+  const zatvara = it.mode==='closeN';
+  const popis = it.multi.list.map(c=>'<div style="margin-left:12px">• '
+    + esc(String(c.t.o||'').slice(0,46)) + ' <span class="txt-mut">· '+esc(c.t.d||'')+' · '
+    + nf2(Number(c.t.a)||0)+' EUR</span></div>').join('');
+  return '<div style="font-size:10.5px;margin-top:3px;'+(zatvara?'color:var(--pos)':'color:var(--mut)')+'">'
+    +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
+    +'<span>'+(zatvara?'↳ jedna uplata zatvara <strong>'+it.multi.list.length+'</strong> računa — upisuje <strong>'
+        +esc(it.dts.replace(/\s*\d{4}\.?$/,''))+'</strong> u PLAĆENO'
+      :'↳ zbroj '+it.multi.list.length+' otvorena računa daje ovaj iznos')+'</span>'
+    +'<span class="bdg '+(it.multi.why==='broj'?'pos':'inf')+'" style="font-size:9px" title="'
+      +(it.multi.why==='broj'?'Brojevi računa navedeni su u opisu uplate':'Prepoznato po zbroju iznosa istog partnera')+'">'
+      +(it.multi.why==='broj'?'po broju računa':'po zbroju')+'</span>'
+    +'<button class="chip" style="padding:1px 7px;font-size:9.5px" onclick="revMode(\''+it.id+'\')">'
+      +(zatvara?'radije novi redak':'zatvori te račune')+'</button></div>'
+    +popis+'</div>';
+}
 
 /** Redak ispod opisa: koji otvoreni račun ova uplata zatvara i prekidač načina knjiženja */
 function matchNote(it){
@@ -2338,6 +2530,7 @@ function revPick(id, ix){
 function revMode(id){
   const i=IMP.items.find(x=>x.id===id); if(!i) return;
   if(i.pm!==undefined && !i.match) i.mode = i.mode==='place' ? 'new' : 'place';
+  else if(i.multi)                 i.mode = i.mode==='closeN' ? 'new' : 'closeN';
   else if(i.match)                 i.mode = i.mode==='close' ? 'new' : 'close';
   renderReview();
 }
@@ -2364,7 +2557,8 @@ function revCat(id,c){
 
 function commitImport(){
   if(!IMP) return;
-  const sel=IMP.items.filter(i=>i.use && (i.mode==='close' ? !!i.match : i.mode==='place' ? true : i.cat!=='__skip'));
+  const sel=IMP.items.filter(i=>i.use && (i.mode==='close' ? !!i.match
+    : i.mode==='closeN' ? !!i.multi : i.mode==='place' ? true : i.cat!=='__skip'));
   if(!sel.length) return toast('Nema označenih stavki',1);
   let nIn=0,nOut=0,learned=0,zatvoreno=0;
   const place={};
@@ -2383,6 +2577,15 @@ function commitImport(){
       /* izvod je mjerodavan za iznos — ispravlja zatipak iz ručnog unosa */
       if(it.match.near) it.match.t.a = Math.round(it.amt*100)/100;
       zatvoreno++;
+      return;
+    }
+    /* jedna uplata pokriva više otvorenih računa — svakom se upisuje datum */
+    if(it.mode==='closeN' && it.multi){
+      it.multi.list.forEach(c=>{
+        c.t.p = fmtD(it.dt);
+        if(!pd(c.t.v)) c.t.v = fmtD(it.dt);
+        zatvoreno++;
+      });
       return;
     }
     const mi=it.dt.m-1;
@@ -2748,10 +2951,10 @@ function viewDash(EXP){
   const h=[];
   /* KPI */
   h.push('<div class="grid g4" style="margin-bottom:16px">');
-  h.push(kpi('Ukupni prihodi', tp, 'var(--pos)', 'vs '+(YEAR-1)+': '+nf0(tp5)+' EUR '+pill(dl(tp,tp5))));
-  h.push(kpi('Ukupni rashodi', tr, 'var(--neg)', 'vs '+(YEAR-1)+': '+nf0(tr5)+' EUR '+pill(dl(tr,tr5),true)));
-  h.push(kpi('Dobit / gubitak', td, td>=0?'var(--pos)':'var(--neg)', 'vs '+(YEAR-1)+': '+nf0(td5)+' EUR '+pill(dl(td,td5))));
-  h.push(kpi('Neto marža', marza, marza>=0?'var(--c1)':'var(--neg)', 'vs '+(YEAR-1)+': '+pc(marza5)+' % '+pill(marza-marza5), '%'));
+  h.push(kpi('Ukupni prihodi', tp, 'var(--pos)', 'vs '+(YEAR-1)+': '+nf0(tp5)+' EUR '+pill(dl(tp,tp5)), '', IC.euro));
+  h.push(kpi('Ukupni rashodi', tr, 'var(--neg)', 'vs '+(YEAR-1)+': '+nf0(tr5)+' EUR '+pill(dl(tr,tr5),true), '', IC.wallet));
+  h.push(kpi('Dobit / gubitak', td, td>=0?'var(--pos)':'var(--neg)', 'vs '+(YEAR-1)+': '+nf0(td5)+' EUR '+pill(dl(td,td5)), '', IC.chart));
+  h.push(kpi('Neto marža', marza, marza>=0?'var(--c1)':'var(--neg)', 'vs '+(YEAR-1)+': '+pc(marza5)+' % '+pill(marza-marza5), '%', IC.pct));
   h.push('</div>');
 
   /* automatski uklonjene isplate plaća iz ranijih uvoza */
@@ -2766,11 +2969,13 @@ function viewDash(EXP){
   try{
     const au=importAudit();
     const nS=au.filter(x=>x.kind==='spoji').length, nD=au.filter(x=>x.kind==='duplikat').length;
+    const nN=au.filter(x=>x.kind==='spojiN').length;
     const pl=au.filter(x=>x.kind==='place');
     const nP=pl.length, izP=pl.reduce((s,x)=>s+(Number(x.row.t.a)||0),0);
-    if(nS||nD||nP) h.push('<div class="alert d" style="margin-bottom:16px"><div class="alert-i">'+IC.warn+'</div><div style="flex:1">'
+    if(nS||nN||nD||nP) h.push('<div class="alert d" style="margin-bottom:16px"><div class="alert-i">'+IC.warn+'</div><div style="flex:1">'
       +'<div class="alert-t">Uvezene stavke treba srediti — prihod i rashod su uvećani</div><div class="alert-b">'
       +(nS?'<strong>'+nS+'</strong> uplata pripada računu koji je već u knjizi i još je bez datuma plaćanja. ':'')
+      +(nN?'<strong>'+nN+'</strong> uplata jednim nalogom plaća više otvorenih računa, a knjižena je kao novi redak. ':'')
       +(nD?'<strong>'+nD+'</strong> stavki uvoz je ponovio, a već su ručno unesene. ':'')
       +(nP?'<strong>'+nP+'</strong> stavaka plaća i naknada ('+nf2(izP)+' EUR) knjiženo je kao trošak, a plaće se unose ručno u rubrici Djelatnici.':'')
       +'</div></div><button class="btn sm" onclick="go(\'import\')">Otvori provjeru</button></div>');
@@ -2852,13 +3057,16 @@ function viewDash(EXP){
     inp.addEventListener('keydown',function(e){ if(e.key==='Enter') this.blur(); });
   });
 }
-function kpi(label,v,col,sub,unit){
+function kpi(label,v,col,sub,unit,ico){
   const body = v==null ? '<span style="color:var(--tx-3)">—</span>'
     : unit==='br' ? nf0(v)                                  /* obični broj, bez valute */
     : unit==='%' ? pc(v)+' <span class="eur">%</span>'
     : unit && unit!=='EUR' ? nf2(v)+' <span class="eur">'+esc(unit)+'</span>'
     : nf2(v)+' <span class="eur">EUR</span>';
-  return '<div class="kpi" style="--kc:'+col+'"><div class="kpi-l">'+esc(label)+'</div>'
+  /* ikona se prikazuje samo na mobitelu (CSS ju na računalu skriva) */
+  return '<div class="kpi" style="--kc:'+col+'">'
+    +(ico?'<span class="kpi-i" style="background:'+col+'">'+ico+'</span>':'')
+    +'<div class="kpi-l">'+esc(label)+'</div>'
     +'<div class="kpi-v" style="color:'+(v==null?'var(--tx-3)':col)+'">'+body+'</div>'
     +'<div class="kpi-c">'+sub+'</div></div>';
 }
@@ -5812,7 +6020,18 @@ function viewEmp(){
    iznos; inače se izdvaja iz bruto iznosa po stopi kategorije.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const PDV_T = {dom:'Domaći — s pretporezom', ino:'Inozemni — prijenos porezne obveze', bez:'Bez PDV-a / oslobođeno'};
+const PDV_T = {
+  dom:'Domaći — s pretporezom',
+  eu: 'Stjecanje dobara iz EU — prijenos obveze',
+  ino:'Inozemna usluga — prijenos obveze',
+  nij:'Dobavljač nije u sustavu PDV-a',
+  rep:'Reprezentacija — bez odbitka',
+  bez:'Bez PDV-a / oslobođeno',
+};
+/* Prijenos porezne obveze: PDV se obračunava NA iznos računa i ulazi istodobno u
+   obvezu i u pretporez — neto nula, ali obje strane moraju biti vidljive da bi se
+   brojke slagale s poreznom prijavom. */
+const PDV_RC = {eu:1, ino:1};
 
 /* Polazne postavke po kategoriji: [stopa, tretman, % odbitka pretporeza] */
 const PDV_DEF = {
@@ -5831,6 +6050,12 @@ const PDV_IZN_DEF = [
   ['DONACIJA','bez'], ['KAMATA','bez'], ['JOPPD','bez'], ['DOPRINOS','bez'],
   ['ESKY','ino'], ['CROAIRFOL','ino'], ['ZRAKOPLOVNA KARTA','ino'],
 ];
+/* Dopuna nakon usporedbe s obračunom knjigovodstva za kolovoz 2026. — vidi pdvMigr(). */
+const PDV_IZN_V2 = [
+  ['CYBERPORT','eu'],                                  /* dobra iz Njemačke — stjecanje iz EU */
+  ['IGGY DESIGN','nij'], ['BENEFIT SYSTEMS','nij'], ['PLAUD','nij'],
+  ['RESTORAN','rep'], ['PIZZERIA','rep'], ['POSLOVNI RUČAK','rep'],
+];
 
 function pdvCfg(){
   const S=D.settings;
@@ -5838,6 +6063,8 @@ function pdvCfg(){
   if(!S.pdv.kat) S.pdv.kat={};
   if(!S.pdv.izn) S.pdv.izn=PDV_IZN_DEF.map(x=>({id:uid(), p:x[0], t:x[1]}));
   if(!Array.isArray(S.pdv.dod) || S.pdv.dod.length!==12) S.pdv.dod=Z12();   // pretporez izvan RDG-a
+  if(!Array.isArray(S.pdv.knj) || S.pdv.knj.length!==12) S.pdv.knj=Z12();   // stvarna obveza po knjigovodstvu
+  pdvMigr(S.pdv);
   D.rows.forEach(r=>{
     if(!S.pdv.kat[r.k]){
       const d=PDV_DEF[r.k] || (r.s==='prihod'?[25,'dom',100]:[25,'dom',100]);
@@ -5846,6 +6073,18 @@ function pdvCfg(){
   });
   return S.pdv;
 }
+/**
+ * Jednokratna dopuna popisa iznimaka. Knjige otvorene prije 27.09.2026. imaju samo
+ * polazni popis, pa im se dodaju pravila naučena iz obračuna knjigovodstva. Pokreće se
+ * jednom (zastavica v2) da se ne vraća ono što je vlasnik u međuvremenu obrisao.
+ */
+function pdvMigr(P){
+  if(P.v2) return;
+  P.v2 = 1;
+  const ima = p => P.izn.some(x => norm(x.p||'') === norm(p));
+  PDV_IZN_V2.forEach(x=>{ if(!ima(x[0])) P.izn.push({id:uid(), p:x[0], t:x[1]}); });
+}
+
 /** Tretman stavke: iznimka po opisu pobjeđuje kategoriju */
 function pdvOf(cat, opis){
   const C=pdvCfg(), k=C.kat[cat]||{s:25,t:'dom',o:100};
@@ -5865,7 +6104,7 @@ function pdvIz(bruto, stopa){ return stopa>0 ? Math.round(bruto*stopa/(100+stopa
  */
 function pdvCalc(){
   pdvCfg();
-  const izl=Z12(), pre=Z12(), izlOsn=Z12(), preOsn=Z12();
+  const izl=Z12(), pre=Z12(), izlOsn=Z12(), preOsn=Z12(), rc=Z12();
   const tocno={izl:Z12(), pre:Z12()}, brojac={izl:[0,0,0,0,0,0,0,0,0,0,0,0], pre:[0,0,0,0,0,0,0,0,0,0,0,0],
               izlT:[0,0,0,0,0,0,0,0,0,0,0,0], preT:[0,0,0,0,0,0,0,0,0,0,0,0]};
   const det={};
@@ -5876,17 +6115,26 @@ function pdvCalc(){
       const q=pd(t.d); const m = q ? q.m-1 : mi;      // mjesec datuma računa
       if(m<0||m>11) return;
       const c=pdvOf(r.k, t.o);
-      let v=0;
+      let v=0, vrc=0;
       const tocan = (Number(t.pv)||0)>0;              // PDV pročitan s računa
       if(c.t==='dom'){
         v = tocan ? Number(t.pv) : pdvIz(a, c.s);
-        if(!inb) v = Math.round(v*(c.o||100))/100/1;
-        if(!inb) v = Math.round(v*100)/100;
+        if(!inb) v = Math.round(v*(c.o||100))/100;    /* ograničen odbitak (vozila 50 %) */
+      } else if(PDV_RC[c.t] && !inb){
+        /* prijenos obveze: PDV se računa NA iznos računa, ne izdvaja iz njega */
+        vrc = Math.round(a*(c.s||0))/100;
       }
-      if(!v && c.t!=='dom') return;
-      if(inb){ izl[m]+=v; izlOsn[m]+=a-v; brojac.izl[m]++; if(tocan) brojac.izlT[m]++; }
-      else   { pre[m]+=v; preOsn[m]+=a-v; brojac.pre[m]++; if(tocan) brojac.preT[m]++; }
-      (det[m]=det[m]||[]).push({k:r.k, l:r.l, inb:inb, o:t.o, d:t.d, a:a, v:v, t:c.t, izn:c.izn, tocan:tocan});
+      if(inb){
+        if(v){ izl[m]+=v; izlOsn[m]+=a-v; brojac.izl[m]++; if(tocan) brojac.izlT[m]++; }
+      } else if(vrc){
+        rc[m]+=vrc;                                    /* ista brojka i u obvezi i u pretporezu */
+        pre[m]+=Math.round(vrc*(c.o||100))/100;
+        preOsn[m]+=a; brojac.pre[m]++;
+      } else if(v){
+        pre[m]+=v; preOsn[m]+=a-v; brojac.pre[m]++; if(tocan) brojac.preT[m]++;
+      }
+      (det[m]=det[m]||[]).push({k:r.k, l:r.l, inb:inb, o:t.o, d:t.d, a:a,
+        v:(v||vrc), rc:!!vrc, t:c.t, izn:c.izn, tocan:tocan});
     }));
   });
   /* pretporez koji ne prolazi kroz Račun D i G — oprema i druga ulaganja */
@@ -5898,12 +6146,14 @@ function pdvCalc(){
   let nos=0;
   for(let m=0;m<12;m++){
     izl[m]=Math.round(izl[m]*100)/100; pre[m]=Math.round(pre[m]*100)/100;
-    raz[m]=Math.round((izl[m]-pre[m])*100)/100;
+    rc[m]=Math.round(rc[m]*100)/100;
+    raz[m]=Math.round((izl[m]+rc[m]-pre[m])*100)/100;
     const s=Math.round((raz[m]-nos)*100)/100;
     if(s>=0){ obv[m]=s; nos=0; } else { obv[m]=0; nos=-s; }
     pren[m]=Math.round(nos*100)/100;
   }
-  return {izl:izl, pre:pre, raz:raz, obv:obv, pren:pren, izlOsn:izlOsn, preOsn:preOsn, br:brojac, det:det};
+  return {izl:izl, rc:rc, pre:pre, raz:raz, obv:obv, pren:pren,
+          izlOsn:izlOsn, preOsn:preOsn, br:brojac, det:det};
 }
 /** Rok plaćanja: posljednji dan sljedećeg mjeseca */
 function pdvRok(mi){
@@ -5914,6 +6164,12 @@ function pdvRok(mi){
 function pdvDod(mi, v){
   const C=pdvCfg();
   C.dod[mi]=Math.round(pn(v)*100)/100;
+  save(); reRender();
+}
+/** Stvarna obveza po obračunu knjigovodstvenog servisa — mjerilo za procjenu */
+function pdvKnj(mi, v){
+  const C=pdvCfg();
+  C.knj[mi]=Math.round(pn(v)*100)/100;
   save(); reRender();
 }
 function pdvSetKat(k,f,v){
@@ -5943,11 +6199,15 @@ function viewPDV(){
 
   const h=[];
   h.push('<div class="grid g4" style="margin-bottom:16px">');
-  h.push(kpi('Izlazni PDV — '+MN[mi], R.izl[mi], 'var(--pos)', 'iz prihoda '+nf0(R.izlOsn[mi]+R.izl[mi])+' EUR'));
+  h.push(kpi('Obračunati PDV — '+MN[mi], R.izl[mi]+R.rc[mi], 'var(--pos)',
+    'iz prihoda '+nf2(R.izl[mi])+(R.rc[mi]?' + prijenos obveze '+nf2(R.rc[mi]):'')+' EUR'));
   h.push(kpi('Pretporez — '+MN[mi], R.pre[mi], 'var(--c1)', 'iz troškova '+nf0(R.preOsn[mi]+R.pre[mi])+' EUR'));
   h.push(kpi('Za uplatu', R.obv[mi], R.obv[mi]>0?'var(--neg)':'var(--pos)',
     R.pren[mi]>0 ? 'prenosi se pretporez '+nf2(R.pren[mi])+' EUR' : 'rok: '+pdvRok(mi)));
-  h.push(kpi('Iz stvarnih računa', udio, udio>=80?'var(--pos)':udio>=40?'var(--warn)':'var(--neg)',
+  const kn=Number(C.knj[mi])||0;
+  if(kn) h.push(kpi('Odstupanje od knjigovodstva', R.obv[mi]-kn,
+    Math.abs(R.obv[mi]-kn)<1?'var(--pos)':'var(--warn)', 'knjigovodstvo: '+nf2(kn)+' EUR'));
+  else h.push(kpi('Iz stvarnih računa', udio, udio>=80?'var(--pos)':udio>=40?'var(--warn)':'var(--neg)',
     (R.br.izlT[mi]+R.br.preT[mi])+' od '+(R.br.izl[mi]+R.br.pre[mi])+' stavki', '%'));
   h.push('</div>');
 
@@ -5959,7 +6219,9 @@ function viewPDV(){
     +'Mjerodavan je obračun knjigovodstvenog servisa. Točnost raste kako uvoziš ulazne i izlazne račune — '
     +'tada se uzima PDV naveden na računu umjesto izdvajanja po stopi.<br><br>'
     +'<strong>Kupnja opreme ne prolazi kroz Račun dobiti i gubitka</strong> (ekrani, računala i druga ulaganja vode se kao imovina), '
-    +'pa aplikacija taj pretporez ne može vidjeti. Upiši ga u stupac <em>Oprema / ulaganja</em> za taj mjesec.'
+    +'pa aplikacija taj pretporez ne može vidjeti. Upiši ga u stupac <em>Oprema / ulaganja</em> za taj mjesec.<br><br>'
+    +'Kad od knjigovodstva dobiješ završni obračun, upiši obvezu u stupac <em>Po knjigovodstvu</em> — '
+    +'stupac <em>Odstupanje</em> odmah pokazuje koliko procjena griješi i u kojem smjeru.'
     +'</div></div></div>');
 
   /* tablica po mjesecima */
@@ -5967,33 +6229,38 @@ function viewPDV(){
     +'<div class="card-t">Obračun po mjesecima '+YEAR+'</div>'
     +'<div class="card-sub">Osnova: datum računa · prijenos pretporeza u sljedeći mjesec</div></div></div>'
     +'<div class="card-b" style="padding:0"><div class="tw"><table><thead><tr>'
-    +'<th class="l" style="width:110px">Mjesec</th><th>Osnovica prihoda</th><th>Izlazni PDV</th>'
-    +'<th>Osnovica troškova</th><th>Pretporez</th><th style="width:130px">Oprema / ulaganja</th>'
-    +'<th>Razlika</th><th>Preneseno</th>'
-    +'<th>Za uplatu</th><th class="l" style="width:110px">Rok</th><th style="width:80px">Iz računa</th>'
+    +'<th class="l" style="width:98px">Mjesec</th><th>Izlazni PDV</th><th>Prijenos obveze</th>'
+    +'<th>Pretporez</th><th style="width:120px">Oprema / ulaganja</th>'
+    +'<th>Razlika</th><th>Preneseno</th><th>Za uplatu</th>'
+    +'<th style="width:120px">Po knjigovodstvu</th><th>Odstupanje</th>'
+    +'<th class="l" style="width:100px">Rok</th>'
     +'</tr></thead><tbody>');
   MN.forEach((m,i)=>{
     if(!(R.br.izl[i]+R.br.pre[i])) return;
     const u=(R.br.izl[i]+R.br.pre[i]) ? (R.br.izlT[i]+R.br.preT[i])/(R.br.izl[i]+R.br.pre[i])*100 : 0;
-    h.push('<tr'+(i===mi?' style="background:var(--surf-2)"':'')+' onclick="pdvGo('+i+')" style="cursor:pointer'+(i===mi?';background:var(--surf-2)':'')+'">'
-      +'<td class="l" style="font-weight:'+(i===mi?'700':'600')+'">'+esc(m)+'</td>'
-      +'<td class="mono txt-mut">'+nf0(R.izlOsn[i])+'</td>'
+    const kv=Number(C.knj[i])||0, od=kv?Math.round((R.obv[i]-kv)*100)/100:null;
+    h.push('<tr onclick="pdvGo('+i+')" style="cursor:pointer'+(i===mi?';background:var(--surf-2)':'')+'">'
+      +'<td class="l" style="font-weight:'+(i===mi?'700':'600')+'" title="'+pc(u)+' % stavki iz stvarnih računa">'+esc(m)+'</td>'
       +'<td class="mono txt-pos" style="font-weight:600">'+nf2(R.izl[i])+'</td>'
-      +'<td class="mono txt-mut">'+nf0(R.preOsn[i])+'</td>'
+      +'<td class="mono txt-mut">'+(R.rc[i]?nf2(R.rc[i]):'—')+'</td>'
       +'<td class="mono" style="color:var(--c1);font-weight:600">'+nf2(R.pre[i])+'</td>'
       +'<td onclick="event.stopPropagation()"><div class="ieur"><input class="cell-inp pdvd" data-m="'+i+'" '
         +'value="'+((C.dod[i])?nf2(C.dod[i]):'')+'" placeholder="0,00" style="text-align:right"><span class="eur">EUR</span></div></td>'
       +'<td class="mono">'+eurC(R.raz[i])+'</td>'
       +'<td class="mono txt-mut">'+(R.pren[i]?nf2(R.pren[i]):'—')+'</td>'
       +'<td class="mono" style="font-weight:700;color:'+(R.obv[i]>0?'var(--neg)':'var(--tx-3)')+'">'+(R.obv[i]?nf2(R.obv[i]):'—')+'</td>'
-      +'<td class="l mono" style="font-size:11px">'+esc(pdvRok(i))+'</td>'
-      +'<td><span class="bdg '+(u>=80?'pos':u>=40?'wrn':'neg')+'">'+pc(u)+' %</span></td></tr>');
+      +'<td onclick="event.stopPropagation()"><div class="ieur"><input class="cell-inp pdvk" data-m="'+i+'" '
+        +'value="'+(kv?nf2(kv):'')+'" placeholder="0,00" style="text-align:right"><span class="eur">EUR</span></div></td>'
+      +'<td class="mono">'+(od===null?'<span class="txt-mut">—</span>'
+        :'<span class="bdg '+(Math.abs(od)<1?'pos':Math.abs(od)<100?'wrn':'neg')+'">'+(od>0?'+':'')+nf2(od)+'</span>')+'</td>'
+      +'<td class="l mono" style="font-size:11px">'+esc(pdvRok(i))+'</td></tr>');
   });
-  h.push('<tr class="row-tot"><td class="l">UKUPNO</td><td class="mono">'+nf0(uk(R.izlOsn))+'</td>'
-    +'<td class="mono">'+nf2(uk(R.izl))+'</td><td class="mono">'+nf0(uk(R.preOsn))+'</td>'
+  h.push('<tr class="row-tot"><td class="l">UKUPNO</td>'
+    +'<td class="mono">'+nf2(uk(R.izl))+'</td><td class="mono">'+nf2(uk(R.rc))+'</td>'
     +'<td class="mono">'+nf2(uk(R.pre))+'</td><td class="mono">'+nf2(uk(C.dod))+'</td>'
     +'<td class="mono">'+eurC(uk(R.raz))+'</td><td></td>'
-    +'<td class="mono" style="font-weight:700">'+nf2(uk(R.obv))+'</td><td colspan="2"></td></tr>');
+    +'<td class="mono" style="font-weight:700">'+nf2(uk(R.obv))+'</td>'
+    +'<td class="mono">'+nf2(uk(C.knj))+'</td><td colspan="2"></td></tr>');
   h.push('</tbody></table></div></div></div>');
 
   /* stavke odabranog mjeseca */
@@ -6015,7 +6282,11 @@ function viewPDV(){
       +'<td class="mono" style="color:'+(x.inb?'var(--pos)':'var(--neg)')+'">'+nf2(x.a)+'</td>'
       +'<td class="mono" style="font-weight:600">'+(x.v?nf2(x.v):'—')+'</td>'
       +'<td style="font-size:10.5px">'+(x.t==='dom'?'<span class="bdg '+(x.tocan?'pos':'inf')+'">'+(x.tocan?'s računa':'izdvojeno')+'</span>'
-        : x.t==='ino'?'<span class="bdg wrn">prijenos obveze</span>':'<span class="bdg">bez PDV-a</span>')
+        : x.t==='eu' ?'<span class="bdg wrn">stjecanje iz EU</span>'
+        : x.t==='ino'?'<span class="bdg wrn">prijenos obveze</span>'
+        : x.t==='nij'?'<span class="bdg">nije u sustavu</span>'
+        : x.t==='rep'?'<span class="bdg">reprezentacija</span>'
+        : '<span class="bdg">bez PDV-a</span>')
       +(x.izn?' <span class="txt-mut" style="font-size:9.5px">'+esc(x.izn)+'</span>':'')+'</td></tr>');
   });
   if(det.length>120) h.push('<tr><td colspan="6" class="l txt-mut" style="font-size:11px;padding:9px 12px">… i još '+(det.length-120)+' stavki</td></tr>');
@@ -6063,6 +6334,11 @@ function viewPDV(){
   document.querySelectorAll('.pdvd').forEach(inp=>{
     inp.addEventListener('focus',function(){ const v=pn(this.value); this.value=v?String(v).replace('.',','):''; this.select(); });
     inp.addEventListener('blur',function(){ pdvDod(+this.dataset.m, this.value); });
+    inp.addEventListener('keydown',function(e){ if(e.key==='Enter') this.blur(); });
+  });
+  document.querySelectorAll('.pdvk').forEach(inp=>{
+    inp.addEventListener('focus',function(){ const v=pn(this.value); this.value=v?String(v).replace('.',','):''; this.select(); });
+    inp.addEventListener('blur',function(){ pdvKnj(+this.dataset.m, this.value); });
     inp.addEventListener('keydown',function(e){ if(e.key==='Enter') this.blur(); });
   });
   document.querySelectorAll('.pdvi').forEach(inp=>{
@@ -6519,25 +6795,107 @@ function tabRender(){
   }).join('');
 }
 
-function fabSheet(on){
+/* Zajednička ladica odozdo — koriste je brzi unos, godine i izvoz. */
+function sheet(naslov, telo){
   const o=document.getElementById('fabSheet'), b=document.getElementById('fabSheetBody');
   if(!o||!b) return;
-  try{ TIP.hide(); }catch(e){}
-  if(on){
-    b.innerHTML='<div class="grip"></div><div class="sh-t">Brzi unos</div>'
-      + FAB.map(f=>'<button class="fa" onclick="fabGo(\''+f.id+'\')">'+IC[f.i]
-        +'<span>'+f.l+'<small>'+f.s+'</small></span></button>').join('');
-    o.classList.add('on');
-  } else o.classList.remove('on');
+  try{ TIP.hide(true); }catch(e){}
+  if(telo==null){ o.classList.remove('on'); return; }
+  b.innerHTML='<div class="grip"></div>'
+    +'<div class="sh-t">'+naslov+'<button class="sh-x" onclick="sheetClose()" aria-label="Zatvori">'+IC.x+'</button></div>'
+    +telo;
+  b.scrollTop=0;
+  o.classList.add('on');
 }
-function fabGo(id){ fabSheet(0); go(id); }
+function sheetClose(){ sheet(null,null); }
+
+function fabSheet(on){
+  if(!on) return sheetClose();
+  sheet('Brzi unos', FAB.map(f=>'<button class="fa" onclick="fabGo(\''+f.id+'\')">'+IC[f.i]
+    +'<span>'+f.l+'<small>'+f.s+'</small></span></button>').join(''));
+}
+function fabGo(id){ sheetClose(); go(id); }
+
+/* ── gornja traka na mobitelu ─────────────────────────────────────────────── */
+/* Stolna alatna traka (godina, razdoblje, tri gumba za izvoz) pojede četvrtinu
+   zaslona telefona. Ovdje ostaju logo i tri kruga; sve ostalo je u ladicama. */
+function mobTop(){
+  const el=document.getElementById('mobTop'); if(!el) return;
+  let logo='DYS';
+  try{ if(D.settings.logo) logo='<img src="'+D.settings.logo+'" alt="">'; }catch(e){}
+  const tamno = document.documentElement.getAttribute('data-theme')==='dark';
+  el.innerHTML='<div class="mt-logo">'+logo+'</div><div class="mt-r">'
+    +'<button class="mt-chip" onclick="godSheet()">'+YEAR+'</button>'
+    +'<button class="mt-chip ico" onclick="expSheet()" aria-label="Izvoz">'+IC.dl+'</button>'
+    +'<button class="mt-chip ico" onclick="theme(\''+(tamno?'light':'dark')+'\')" aria-label="Svijetlo ili tamno">'
+      +(tamno?IC.sun:IC.moon)+'</button></div>';
+}
+
+/* veliki naslov umjesto trake s naslovom */
+function mobHead(naslov){
+  let tvrtka='DOT YOUR SPOT';
+  try{ if(D.settings.naziv) tvrtka=D.settings.naziv; }catch(e){}
+  return '<div class="mob-h"><div class="k">'+esc(tvrtka)+' · RDG</div><h1>'+esc(naslov||'')+'</h1></div>';
+}
+
+/* ── ladica: poslovna godina ──────────────────────────────────────────────── */
+function godSheet(){
+  let ys=[YEAR]; try{ ys=yearsList(); }catch(e){}
+  const t = ys.map(y=>'<button class="fr'+(y===YEAR?' on':'')+'" onclick="godIdi('+y+')">'
+      +'<span>'+y+'.</span>'+(y===YEAR?'<span class="ok">'+IC.chk+'</span>':'')+'</button>').join('')
+    + '<button class="fr" onclick="sheetClose();askYear()">'+IC.plus+'<span>Nova poslovna godina</span></button>';
+  sheet('Poslovna godina', t);
+}
+function godIdi(y){ sheetClose(); if(y!==YEAR) switchYear(y); }
+
+/* ── ladica: razdoblje i izvoz ────────────────────────────────────────────── */
+/* Razdoblje u ovoj aplikaciji određuje što ulazi u CSV, Excel i PDF — ne mijenja
+   prikaz — pa mu je mjesto uz same gumbe za izvoz. Gumbi se čitaju iz stolne
+   trake, koja je na mobitelu skrivena ali i dalje postoji, pa svaki prikaz
+   automatski nudi točno svoje izvoze. */
+function perOpts(){
+  const o=[['god','Cijela godina '+YEAR]];
+  for(let q=1;q<=4;q++) o.push(['q'+q, q+'. kvartal ('+MR[(q-1)*3]+'–'+MR[(q-1)*3+2]+')']);
+  MN.forEach((m,i)=>o.push(['m'+i, MR[i]+' — '+m]));
+  return o;
+}
+function expSheet(){
+  const ima = !!document.getElementById('expPer');
+  let t='';
+  const bts=[].slice.call(document.querySelectorAll('#top-act .btn'));
+  if(bts.length){
+    t+='<div class="cap">Preuzmi</div>'
+     + bts.map(b=>'<button class="fr" onclick="sheetClose();'
+         +esc(b.getAttribute('onclick')||'')+'">'+b.innerHTML+'</button>').join('');
+  }
+  if(ima){
+    t+='<div class="cap">Razdoblje koje se izvozi</div>'
+     + perOpts().map(o=>'<button class="fr'+(o[0]===EXPP?' on':'')+'" onclick="expPer(\''+o[0]+'\')">'
+         +'<span>'+esc(o[1])+'</span>'+(o[0]===EXPP?'<span class="ok">'+IC.chk+'</span>':'')
+         +'</button>').join('');
+  }
+  if(!t) t='<div class="cap">Ovaj prikaz nema izvoz</div>';
+  sheet('Izvoz', t);
+}
+function expPer(v){ setPer(v); render(); expSheet(); }
 
 /* ── vrijednosti na grafovima na dodir ────────────────────────────────────── */
 /* Na računalu opis prati miš. Na dodir nema miša, pa se pod prstom traži
    element s data-tip (stupci grafa su prozirni pravokutnici pune visine).
    Pravilo: dodir koji je počeo na grafu i vuče se vodoravno čita vrijednosti i
    ne pomiče stranicu; vuča nadolje je pomicanje stranice i opis se sklanja. */
-let tipT=null, tipAkt=false, tipPom=false, tipX0=0, tipY0=0;
+let tipT=null, tipAkt=false, tipPom=false, tipX0=0, tipY0=0, tipKad=0;
+
+/* Preglednik nakon dodira sam izmisli mišje događaje, pa `mouseleave` iz
+   bindTips-a sklanja opis koji je prst upravo otvorio. Zato hide koji ne dolazi
+   od nas ignoriramo kratko nakon dodira; naše sklanjanje šalje sila=true. */
+(function(){
+  const _hide = TIP.hide.bind(TIP);
+  TIP.hide = function(sila){
+    if(!sila && Date.now()-tipKad < 900) return;
+    _hide();
+  };
+})();
 function tipPod(t){
   const el=document.elementFromPoint(t.clientX, t.clientY);
   return el && el.closest ? el.closest('[data-tip]') : null;
@@ -6547,40 +6905,58 @@ function tipTouch(){
 
   document.addEventListener('touchstart', e=>{
     const t=e.touches && e.touches[0]; if(!t) return;
+    tipKad=Date.now();
     const el=tipPod(t);
     tipAkt=!!el; tipPom=false; tipX0=t.clientX; tipY0=t.clientY;
     if(el){ if(tipT){ clearTimeout(tipT); tipT=null; }
       TIP.show(t.clientX, t.clientY, el.getAttribute('data-tip')); }
-    else TIP.hide();
+    else TIP.hide(true);
   }, {passive:true});
 
   document.addEventListener('touchmove', e=>{
+    tipKad=Date.now();
     if(!tipAkt) return;
     const t=e.touches && e.touches[0]; if(!t) return;
     const dx=Math.abs(t.clientX-tipX0), dy=Math.abs(t.clientY-tipY0);
-    if(!tipPom && dy>12 && dy>dx){ tipPom=true; tipAkt=false; TIP.hide(); return; }
+    if(!tipPom && dy>12 && dy>dx){ tipPom=true; tipAkt=false; TIP.hide(true); return; }
     if(dx<7 && dy<7) return;
     if(e.cancelable) e.preventDefault();      /* prelazak po grafu ne pomiče stranicu */
     const el=tipPod(t);
     if(el) TIP.show(t.clientX, t.clientY, el.getAttribute('data-tip'));
   }, {passive:false});
 
-  const kraj=()=>{ tipAkt=false; if(tipT) clearTimeout(tipT);
-    tipT=setTimeout(()=>TIP.hide(), 2600); };
+  const kraj=()=>{ tipKad=Date.now(); tipAkt=false; if(tipT) clearTimeout(tipT);
+    tipT=setTimeout(()=>TIP.hide(true), 2600); };
   document.addEventListener('touchend', kraj, {passive:true});
-  document.addEventListener('touchcancel', ()=>{ tipAkt=false; TIP.hide(); }, {passive:true});
+  document.addEventListener('touchcancel', ()=>{ tipAkt=false; TIP.hide(true); }, {passive:true});
 }
 
 /* traka se osvježava zajedno s prikazom; promjena prikaza sklanja skočni opis */
+const _setView = setView;
+setView = function(html, title, actions){
+  _setView.apply(this, arguments);
+  const v=document.getElementById('view');
+  if(v) v.insertAdjacentHTML('afterbegin', mobHead(title));
+};
 const _render = render;
-render = function(){ _render.apply(this, arguments); try{ tabRender(); }catch(e){} };
+render = function(){ _render.apply(this, arguments);
+  try{ tabRender(); }catch(e){} try{ mobTop(); }catch(e){} };
 const _toggleNav = toggleNav;
 toggleNav = function(){ _toggleNav.apply(this, arguments); try{ tabRender(); }catch(e){} };
 const _go = go;
-go = function(){ try{ TIP.hide(); }catch(e){} return _go.apply(this, arguments); };
+go = function(){ try{ TIP.hide(true); }catch(e){} return _go.apply(this, arguments); };
 
 tipTouch();
-setTimeout(()=>{ try{ tabRender(); }catch(e){} }, 300);
+/* Prvi prikaz se iscrta prije nego se ovaj dio učita, pa mu naslov dodajemo
+   naknadno — bez ponovnog iscrtavanja cijelog prikaza. */
+setTimeout(()=>{
+  try{ tabRender(); }catch(e){}
+  try{ mobTop(); }catch(e){}
+  try{ const v=document.getElementById('view');
+    if(v && v.innerHTML && !v.querySelector('.mob-h'))
+      v.insertAdjacentHTML('afterbegin', mobHead(document.getElementById('top-t').textContent));
+  }catch(e){}
+}, 300);
 
 </script>
 </body>
