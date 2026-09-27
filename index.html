@@ -6056,6 +6056,11 @@ const PDV_IZN_V2 = [
   ['IGGY DESIGN','nij'], ['BENEFIT SYSTEMS','nij'], ['PLAUD','nij'],
   ['RESTORAN','rep'], ['PIZZERIA','rep'], ['POSLOVNI RUČAK','rep'],
 ];
+/* Dopuna nakon usporedbe za srpanj 2026.: kazne, troškovi postupka i plaćanja po
+   sporazumu nisu isporuka dobra ni usluge, pa nemaju ni pretporez. */
+const PDV_IZN_V3 = [
+  ['KAZN','bez'], ['PREKRŠAJ','bez'], ['SPORAZUM','bez'], ['NAGODB','bez'],
+];
 
 function pdvCfg(){
   const S=D.settings;
@@ -6079,10 +6084,10 @@ function pdvCfg(){
  * jednom (zastavica v2) da se ne vraća ono što je vlasnik u međuvremenu obrisao.
  */
 function pdvMigr(P){
-  if(P.v2) return;
-  P.v2 = 1;
   const ima = p => P.izn.some(x => norm(x.p||'') === norm(p));
-  PDV_IZN_V2.forEach(x=>{ if(!ima(x[0])) P.izn.push({id:uid(), p:x[0], t:x[1]}); });
+  const dodaj = lista => lista.forEach(x=>{ if(!ima(x[0])) P.izn.push({id:uid(), p:x[0], t:x[1]}); });
+  if(!P.v2){ P.v2=1; dodaj(PDV_IZN_V2); }
+  if(!P.v3){ P.v3=1; dodaj(PDV_IZN_V3); }
 }
 
 /** Tretman stavke: iznimka po opisu pobjeđuje kategoriju */
