@@ -5486,7 +5486,7 @@ const ULZ_DAT2= new RegExp('(?:^|\\n)\\s*(?:DATUM|DATE)\\s*:?[^0-9\\n]{0,20}'+RE
 const ULZ_ROK = new RegExp('(?:ROK\\s*PLA[CĆ]ANJA|DATUM\\s*DOSPIJE[CĆ]A|DOSPIJE[CĆ]E(?:\\s*PLA[CĆ]ANJA)?|DATUM\\s*VALUTE|VALUTA\\s*PLA[CĆ]ANJA|PLATITI\\s*DO|DUE\\s*DATE|PAYMENT\\s*DUE|DUE\\s*BY)[^0-9]{0,20}?'+RE_DT_ANY.source,'i');
 
 /* iznos: jaka oznaka („Iznos računa", „Ukupno za platiti"), osnovica i PDV */
-const L_STRONG = /IZNOS\s+(?:OVOG\s+)?RA[CČ]UNA|UKUPNO\s*ZA\s*(?:PLATITI|PLA[CĆ]ANJE|NAPLATU|UPLATU)|ZA\s*PLATITI|IZNOS\s*ZA\s*(?:PLATITI|PLA[CĆ]ANJE|UPLATU)|ZA\s*UPLATU|UKUPAN\s*IZNOS(?:\s*NAPLATE|\s*RA[CČ]UNA|\s*S\s*PDV[\-\s]?OM?)?|SVE\s?UKUPNO|UKUPNO\s*S\s*PDV|AMOUNT\s*DUE|TOTAL\s*DUE|GRAND\s*TOTAL|BALANCE\s*DUE|TOTAL\s*(?:AMOUNT|INCL)|GESAMTBETRAG/i;
+const L_STRONG = /IZNOS\s+(?:OVOG\s+)?RA[CČ]UNA|UKUPNO\s*ZA\s*(?:PLATITI|PLA[CĆ]ANJE|NAPLATU|UPLATU)|UKUPNO\s*(?:€|EUR\b)|ZA\s*PLATITI|IZNOS\s*ZA\s*(?:PLATITI|PLA[CĆ]ANJE|UPLATU)|ZA\s*UPLATU|UKUPAN\s*IZNOS(?:\s*NAPLATE|\s*RA[CČ]UNA|\s*S\s*PDV[\-\s]?OM?)?|SVE\s?UKUPNO|UKUPNO\s*S\s*PDV|AMOUNT\s*DUE|TOTAL\s*DUE|GRAND\s*TOTAL|BALANCE\s*DUE|TOTAL\s*(?:AMOUNT|INCL)|GESAMTBETRAG/i;
 const L_BASE   = /UKUPNO\s*(?:BEZ\s*PDV|OPOREZIVO|NEOPOREZIVO)|OSNOVIC|POREZNA\s*OSNOVICA|SUBTOTAL|NET\s*AMOUNT|UKUPNO\s*BEZ\s*POREZA/i;
 const L_VAT    = /\bPDV\b|POREZ\s*NA\s*DODANU|\bVAT\b(?!\s*ID)|\bMWST\b/i;
 const L_WEAK   = /\bUKUPNO\b|\bTOTAL\b|\bIZNOS\b/i;
@@ -5503,6 +5503,47 @@ function oibValid(s){
 
 function isDocDate(s){ const q=pd(String(s).replace(/\s/g,'')); if(q) return q;
   const m=String(s).match(/^(\d{4})-(\d{2})-(\d{2})$/); return m?{d:+m[3],m:+m[2],y:+m[1]}:null; }
+
+/* same oznake, bez datuma — za traženje po položaju */
+const L_DAT  = /(?:MJESTO\s+I\s+DATUM\s+IZDAVANJA|DATUM\s*(?:I\s*VRIJEME\s*)?(?:RA[CČ]UNA|IZDAVANJA|IZDANJA|DOKUMENTA|FAKTURE)|INVOICE\s*DATE|DATE\s*OF\s*ISSUE|ISSUE\s*DATE|RECHNUNGSDATUM)/i;
+const L_DAT2 = /(?:^|\s)(?:DATUM|DATE)\s*:?/i;
+const L_ROK  = /(?:ROK\s*PLA[CĆ]ANJA|DATUM\s*DOSPIJE[CĆ]A|DOSPIJE[CĆ]E|DATUM\s*VALUTE|VALUTA\s*PLA[CĆ]ANJA|PLATITI\s*DO|DUE\s*DATE|PAYMENT\s*DUE|DUE\s*BY)/i;
+
+/**
+ * Datum uz zadanu oznaku. Hrvatski e-računi oznaku stavljaju u zaglavlje stupca,
+ * a vrijednost redak-dva niže — i u tom retku zna stajati više datuma jedan do
+ * drugoga („Datum isporuke  Dospijeće računa" → „30.09.2026  07.10.2026").
+ * Zato se, kad datuma nema u istom retku, bira onaj poravnat s oznakom po x-u.
+ */
+function datUzOznaku(lines, re, dolje){
+  for(let i=0;i<lines.length;i++){
+    const l=lines[i], m=l.t.match(re);
+    if(!m) continue;
+    /* 1 — datum stoji iza oznake u istom retku */
+    const iza=l.t.slice(m.index+m[0].length).match(RE_DT_ANY);
+    if(iza){ const q=isDocDate(iza[1]); if(q) return q; }
+    /* 2 — oznaka je zaglavlje stupca: traži niže, poravnato po x-u */
+    const prva=norm(m[0]).trim().split(/\s+/)[0];
+    const sg=(l.seg||[]).find(s=>norm(s.s).indexOf(prva)===0);
+    const lx=sg?sg.x:null;
+    for(let k=i+1;k<Math.min(i+1+(dolje||3), lines.length);k++){
+      const kand=[];
+      (lines[k].seg||[]).forEach(s=>{ const q=isDocDate(s.s); if(q) kand.push({q:q, x:s.x}); });
+      if(!kand.length){
+        const t=lines[k].t.match(RE_DT_ANY);
+        if(t){ const q=isDocDate(t[1]); if(q) kand.push({q:q, x:null}); }
+      }
+      if(!kand.length) continue;
+      if(lx!=null && kand.length>1){
+        const bl=kand.slice().sort((a,b)=>
+          Math.abs((a.x==null?1e9:a.x)-lx)-Math.abs((b.x==null?1e9:b.x)-lx))[0];
+        if(bl && bl.x!=null && Math.abs(bl.x-lx)<=60) return bl.q;
+      }
+      return kand[0].q;
+    }
+  }
+  return null;
+}
 
 /** Naziv dobavljača: uz njegov OIB, ili prvi redak s pravnim oblikom, koji nije naša tvrtka */
 function ulzSupplier(lines, ownName, ownOib){
@@ -5573,7 +5614,9 @@ function ulzTotal(txt){
       return;
     }
     if(L_VAT.test(l) && !/BEZ\s*PDV|EXCL|REVERSE|PDV\s*ID|VAT\s*ID/i.test(l)){
-      const v=a.filter(x=>x>0); if(v.length){ vat+=Math.max.apply(null,v); imaVat=true; }
+      /* „PDV:25% (Osn:500,00 €) 125,00" — osnovica u zagradi nije iznos PDV-a */
+      const v=moneyIn(l.replace(/\([^)]*\)/g,' ')).filter(x=>x>0);
+      if(v.length){ vat+=Math.max.apply(null,v); imaVat=true; }
       return;
     }
     if(L_BASE.test(l)){
@@ -5641,10 +5684,18 @@ function ulzParse(lines, fname){
     if(m && (m[1].match(/\d/g)||[]).length>=2) broj=m[1].replace(/[.,;]$/,'');
   });
   if(!broj){ const m=txt.match(/INTERNI\s*BROJ\s*DOKUMENTA\s*:?\s*([0-9][0-9A-Za-z\-\/]{4,30})/i); if(m) broj=m[1]; }
+  /* e-račun često piše samo „Račun 21/1/1", bez riječi „broj" */
+  if(!broj){ const m=txt.match(/RA[CČ]UN\s*:?\s*([0-9]{1,7}(?:[-\/][0-9A-Za-z]{1,6}){1,4})\b/i); if(m) broj=m[1]; }
   const predracun = /\bPREDRA[CČ]UN\b|\bPROFORMA\b/i.test(txt) && !/\bRA[CČ]UN\s*(BR|BROJ|ZA)/i.test(txt);
-  let m=txt.match(ULZ_DAT); if(!m) m=txt.match(ULZ_DAT2);
-  const dt = m ? isDocDate(m[1]) : null;
-  m=txt.match(ULZ_ROK); const rok = m ? isDocDate(m[1]) : null;
+  /* Datum i rok: prvo po položaju oznake (podnosi i zaglavlja stupaca), pa
+     tek onda stari način preko cijelog teksta. */
+  let dt = datUzOznaku(lines, L_DAT, 3);
+  if(!dt){ let m=txt.match(ULZ_DAT) || txt.match(ULZ_DAT2); dt = m ? isDocDate(m[1]) : null; }
+  if(!dt) dt = datUzOznaku(lines, L_DAT2, 2);
+  let rok = datUzOznaku(lines, L_ROK, 2);
+  if(!rok){ const m=txt.match(ULZ_ROK); rok = m ? isDocDate(m[1]) : null; }
+  /* rok ne može biti prije datuma računa */
+  if(rok && dt && dnum(rok)<dnum(dt)) rok=null;
   const tot=ulzTotal(txt);
   const desc=(sup.name?sup.name:'(nepoznat dobavljač)')+(broj?' RN.BR:'+broj:'');
   const cls=classify(sup.name||fname, 'out');
