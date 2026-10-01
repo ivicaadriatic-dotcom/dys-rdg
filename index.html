@@ -613,6 +613,31 @@ function pd(s){
   if(d<1||d>31||mo<1||mo>12) return null;
   return {d:d,m:mo,y:y};
 }
+/**
+ * Dopunjava prečice koje se tipkaju u polje datuma. Ono što je već čitljivo ne
+ * dira se. Sam dan uzima mjesec stupca u kojem se upisuje:
+ *   29 → 29.09. (u rujnu) · 2909 → 29.09. · 290926 → 29.09.26 · 29092026 → 29.09.2026
+ * Što se ni tako ne da pročitati vraća se neizmijenjeno — polje tada pocrveni
+ * umjesto da se tiho spremi nešto što aplikacija ne razumije.
+ */
+function datUnos(v, mi){
+  const s = String(v==null?'':v).trim();
+  if(!s) return '';
+  if(pd(s)) return s;
+  if(/^\d+$/.test(s)){
+    let r='';
+    if(s.length<=2)                     r = (mi!=null && mi>=0 && mi<=11)
+                                            ? s.padStart(2,'0')+'.'+String(mi+1).padStart(2,'0')+'.' : '';
+    else if(s.length===3)               r = '0'+s[0]+'.'+s.slice(1)+'.';
+    else if(s.length===4)               r = s.slice(0,2)+'.'+s.slice(2)+'.';
+    else if(s.length===6 || s.length===8) r = s.slice(0,2)+'.'+s.slice(2,4)+'.'+s.slice(4)+'.';
+    if(r && pd(r)) return r;
+  }
+  return s;
+}
+/** Polje s datumom koje aplikacija ne može pročitati — prikazuje se crveno */
+function datLoš(v){ return !!String(v==null?'':v).trim() && !pd(v); }
+
 const fmtD  = o => o ? String(o.d).padStart(2,'0')+'.'+String(o.m).padStart(2,'0')+'.' : '';
 const fmtDY = o => o ? fmtD(o)+o.y+'.' : '';
 const dnum  = o => o ? o.y*10000+o.m*100+o.d : 0;
@@ -2415,7 +2440,9 @@ function renderReview(){
     +'<th class="l" style="width:210px">Kategorija</th><th style="width:96px">Pouzdanost</th>'
     +'</tr></thead><tbody>'];
   vis.forEach(it=>{
-    const badge = it.mode==='place' ? '<span class="bdg inf" title="Ne knjiži se — upisuje se samo datum isplate plaća">datum isplate plaća</span>'
+    const badge = (it.dt && it.dt.y!==YEAR)
+        ? '<span class="bdg neg" title="Knjiga je za '+YEAR+'. — provjeri prije knjiženja">godina '+it.dt.y+'.</span>'
+      : it.mode==='place' ? '<span class="bdg inf" title="Ne knjiži se — upisuje se samo datum isplate plaća">datum isplate plaća</span>'
       : it.mode==='close' ? '<span class="bdg pos" title="Ne otvara novi redak — upisuje datum plaćanja u postojeći račun">zatvara račun</span>'
       : it.mode==='closeN' ? '<span class="bdg pos" title="Jedna uplata pokriva više otvorenih računa — upisuje im datum plaćanja">zatvara '+it.multi.list.length+' računa</span>'
       : it.dup==='tocno' ? '<span class="bdg wrn">već uneseno</span>'
@@ -3214,13 +3241,17 @@ function viewCat(){
   rows.forEach(r=>{
     const t=r.t, unp=t.v && !t.p;
     const dm=' data-i="'+r.i+'" data-m="'+r.m+'"';
+    /* datum koji se ne da pročitati mora se vidjeti — inače tiho ispadne iz dospijeća */
+    const zlo=' title="Datum nije čitljiv — upiši dd.mm." style="text-align:left;color:var(--neg);font-weight:650;background:var(--neg-bg)"';
     h.push('<tr>'
       +(god?'<td class="l" style="font-size:11px;color:var(--tx-3)">'+MR[r.m]+'</td>':'')
-      +'<td class="l"><input class="cell-inp tx" style="text-align:left"'+dm+' data-f="d" value="'+esc(t.d)+'" placeholder="dd.mm."></td>'
+      +'<td class="l"><input class="cell-inp tx"'+(datLoš(t.d)?zlo:' style="text-align:left"')+dm+' data-f="d" value="'+esc(t.d)+'" placeholder="dd.mm."></td>'
       +'<td><div class="ieur"><input class="cell-inp tx"'+dm+' data-f="a" value="'+(t.a?nf2(t.a):'')+'" style="color:'+col+';font-weight:600" placeholder="0,00"><span class="eur">EUR</span></div></td>'
       +'<td class="l"><input class="cell-inp tx" style="text-align:left"'+dm+' data-f="o" value="'+esc(t.o)+'" placeholder="naziv / br. računa"></td>'
-      +'<td><input class="cell-inp tx"'+dm+' data-f="v" value="'+esc(t.v)+'" placeholder="dd.mm."></td>'
-      +'<td><input class="cell-inp tx"'+dm+' data-f="p" value="'+esc(t.p)+'" placeholder="dd.mm." style="'+(unp?'color:var(--neg);font-weight:650':'color:var(--pos)')+'"></td>'
+      +'<td><input class="cell-inp tx"'+(datLoš(t.v)?zlo.replace('text-align:left;',''):'')+dm+' data-f="v" value="'+esc(t.v)+'" placeholder="dd.mm."></td>'
+      +'<td><input class="cell-inp tx"'+dm+' data-f="p" value="'+esc(t.p)+'" placeholder="dd.mm." '
+        +(datLoš(t.p)?'title="Datum nije čitljiv — račun se zato vodi kao neplaćen" style="color:var(--neg);font-weight:650;background:var(--neg-bg)"'
+                    :'style="'+(unp?'color:var(--neg);font-weight:650':'color:var(--pos)')+'"')+'></td>'
       +'<td class="no-print"><button class="btn sm dgr" onclick="delTx('+r.i+','+r.m+')">'+IC.x+'</button></td></tr>');
   });
   h.push('</tbody><tfoot><tr class="row-tot">'+(god?'<td></td>':'')+'<td class="l">UKUPNO</td>'
@@ -3238,11 +3269,8 @@ function viewCat(){
       const i=+this.dataset.i, f=this.dataset.f, arr=D.td[CAT][+this.dataset.m];
       if(!arr||!arr[i]) return;
       if(f==='a') arr[i].a=pn(this.value);
-      else if(f==='d'||f==='v'||f==='p'){
-        let v=this.value.trim();
-        if(v && !/[.\/]/.test(v)){ if(v.length<=2) v=v+'.'; else if(v.length===4) v=v.slice(0,2)+'.'+v.slice(2)+'.'; }
-        arr[i][f]=v;
-      } else arr[i][f]=this.value;
+      else if(f==='d'||f==='v'||f==='p') arr[i][f]=datUnos(this.value, +this.dataset.m);
+      else arr[i][f]=this.value;
       save(); reRender();
     });
     inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){e.preventDefault();this.blur();} });
@@ -4294,7 +4322,10 @@ function invRender(){
     +'<th class="l" style="width:186px">Knjiži u</th><th style="width:88px">Status</th></tr></thead><tbody>'];
   if(!vis.length) h.push('<tr><td colspan="9"><div class="empty">'+IC.doc+'<div class="empty-t">Nema računa u ovom filtru</div></div></td></tr>');
   vis.forEach(it=>{
-    const badge = it.dup==='tocno'?'<span class="bdg wrn">već uneseno</span>'
+    /* godina se pri knjiženju ne sprema — račun iz druge godine mora se vidjeti */
+    const badge = it.dt.y!==YEAR
+        ? '<span class="bdg neg" title="Knjiga je za '+YEAR+'. — provjeri prije knjiženja">godina '+it.dt.y+'.</span>'
+      : it.dup==='tocno'?'<span class="bdg wrn">već uneseno</span>'
       : it.dup==='mozda'?'<span class="bdg wrn">isti dan i iznos</span>'
       : it.naplacen?'<span class="bdg pos">naplaćen</span>'
       : it.v?'<span class="bdg inf">otvoren</span>':'<span class="bdg">bez valute</span>';
@@ -5627,6 +5658,8 @@ function ulzParse(lines, fname){
   };
   if(!sup.name)   it.problemi.push('dobavljač nije prepoznat');
   if(!dt)         it.problemi.push('datum računa nije pronađen');
+  /* godina se pri knjiženju ne sprema, pa bi račun iz druge godine tiho sjeo u ovu knjigu */
+  else if(dt.y!==YEAR) it.problemi.push('datum računa je '+fmtDY(dt)+' — knjiga je za '+YEAR+'.');
   if(!it.amt)     it.problemi.push('iznos nije pronađen');
   else if(tot.izvor==='najveci') it.problemi.push('iznos nije bio označen — uzet je najveći u dokumentu, obavezno provjeri');
   else if(tot.izvor==='slabo') it.problemi.push('iznos nije jasno označen — provjeri je li s PDV-om');
