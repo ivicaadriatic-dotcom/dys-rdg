@@ -498,7 +498,7 @@ input[type=checkbox].sw-in{display:none}
     <div class="brand-logo" id="brandLogo">DYS</div>
     <div style="min-width:0">
       <div class="brand-t" id="brandName">DOT YOUR SPOT</div>
-      <div class="brand-s">Račun dobiti i gubitka</div>
+      <div class="brand-s">Račun dobiti i gubitka · <span id="brandVer"></span></div>
     </div>
   </div>
   <div id="nav"></div>
@@ -532,6 +532,11 @@ const SEED={"rows":[{"k":"prihodi_grupe","l":"PRIHODI GRUPE","s":"prihod"},{"k":
    Samostalna offline aplikacija. Podaci se čuvaju lokalno (localStorage).
    ═══════════════════════════════════════════════════════════════════════════ */
 'use strict';
+
+/* Oznaka verzije — podiže se pri svakoj objavi, da se na prvi pogled vidi je li
+   u pregledniku nova datoteka. Prikazuje se pod nazivom tvrtke i u Postavkama. */
+const VER   = '1.0.0';
+const VERD  = '02.10.2026.';
 
 const KEY   = 'dysrdg_v1';       // osnovni ključ; ostale godine: KEY_<godina>
 let   DKEY  = KEY;               // ključ aktivne godine
@@ -2959,6 +2964,8 @@ function render(){
   else if(VIEW==='cat')   viewCat();
   else if(VIEW==='set')   viewSet();
   document.getElementById('brandName').textContent = D.settings.naziv||'DOT YOUR SPOT';
+  const bv=document.getElementById('brandVer');
+  if(bv){ bv.textContent='v'+VER; bv.title='Verzija '+VER+' · objavljeno '+VERD; }
   const bl=document.getElementById('brandLogo');
   bl.innerHTML = D.settings.logo ? '<img src="'+D.settings.logo+'" alt="">' : 'DYS';
 }
@@ -3548,6 +3555,8 @@ function viewSet(){
     +'<tr><td class="l mut">Naučenih pravila</td><td class="mono" style="font-weight:600">'+D.rules.length+'</td></tr>'
     +'<tr><td class="l mut">Uvoza izvoda</td><td class="mono" style="font-weight:600">'+D.imports.length+'</td></tr>'
     +'<tr><td class="l mut">Zauzeće memorije</td><td class="mono" style="font-weight:600">'+(sz/1024).toFixed(0)+' kB</td></tr>'
+    +'<tr><td class="l mut">Verzija aplikacije</td><td class="mono" style="font-weight:600">v'+VER
+      +' <span class="mut" style="font-weight:400">· '+VERD+'</span></td></tr>'
     +'</tbody></table>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
     +'<button class="btn pri" onclick="backup()">'+IC.dl+' Izvezi kopiju (JSON)</button>'
