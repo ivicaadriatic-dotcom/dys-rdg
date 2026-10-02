@@ -5718,19 +5718,168 @@ function ulzParse(lines, fname){
   if(tot.cur!=='EUR') it.problemi.push('račun je u '+tot.cur+' — upiši iznos u EUR s izvoda');
   if(predracun)   it.problemi.push('ovo izgleda kao predračun / ponuda, ne račun');
   if(!rok)        it.problemi.push('rok plaćanja nije pronađen');
-  /* već uneseno? isti broj računa kod istog dobavljača, ili isti dan i iznos */
+  ulzDup(it);
+  return it;
+}
+
+/** Je li račun već u knjizi? Isti broj kod istog dobavljača, ili isti dan i iznos. */
+function ulzDup(it){
   it.dup=false;
-  if(dt && it.amt){
-    it.dup=isDuplicate({dt:dt, amt:it.amt, desc:desc});
-    if(!it.dup && broj){
-      const rn=rnOf(desc);
+  if(it.dt && it.amt){
+    it.dup=isDuplicate({dt:it.dt, amt:it.amt, desc:it.desc});
+    if(!it.dup && it.broj){
+      const rn=rnOf(it.desc);
       for(const k in D.td) (D.td[k]||[]).forEach(mo=>(mo||[]).forEach(t=>{
-        const tr=rnOf(t.o); if(rn && tr===rn && sharedWord(norm(t.o), norm(desc))) it.dup='tocno';
+        const tr=rnOf(t.o); if(rn && tr===rn && sharedWord(norm(t.o), norm(it.desc))) it.dup='tocno';
       }));
     }
   }
   if(it.dup==='tocno') it.use=false;
-  if(!dt || !it.amt) it.use=false;
+  if(!it.dt || !it.amt) it.use=false;
+  return it;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   E-RAČUN U XML-u — UBL 2.1 (EN 16931 / HR CIUS) i UN/CEFACT CII
+   Ovdje se ništa ne pogađa: svaki podatak stoji u svom imenovanom polju,
+   pa nema rasporeda stranice, zaglavlja stupaca ni x-koordinata.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* korijenski element e-računa, s prefiksom ili bez njega */
+const RE_ERACUN = /<(?:[A-Za-z0-9_.-]+:)?(?:Invoice|CreditNote|CrossIndustryInvoice)[\s>]/;
+
+/** Ime elementa bez prefiksa (cbc:ID → ID) — radi i kad preglednik ne zna prostor imena */
+function xLok(n){ return n.localName || String(n.tagName||'').split(':').pop(); }
+/** Djeca zadanog imena — samo izravna, da se ne pokupe vrijednosti iz stavaka računa */
+function xDjeca(cvor, ime){
+  const out=[];
+  cvor.forEach(n=>{ for(let c=n.firstElementChild;c;c=c.nextElementSibling) if(xLok(c)===ime) out.push(c); });
+  return out;
+}
+function xPut(root, put){
+  let cur=[root];
+  put.split('/').forEach(seg=>{ cur = cur.length ? xDjeca(cur, seg.replace(/^.*:/,'')) : cur; });
+  return cur;
+}
+function xTxt(root, put){ const a=xPut(root,put); return a.length ? String(a[0].textContent||'').trim() : ''; }
+/** Prvi put koji nešto vrati — standard dopušta više mjesta za isti podatak */
+function xPrvi(root, puti){ for(let i=0;i<puti.length;i++){ const v=xTxt(root,puti[i]); if(v) return v; } return ''; }
+function xBroj(s){ const v=parseFloat(String(s==null?'':s).replace(/\s/g,'')); return isFinite(v)?v:0; }
+function xDat(s){
+  s=String(s==null?'':s).trim();
+  let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);  if(m) return {d:+m[3], m:+m[2], y:+m[1]};
+  m=s.match(/^(\d{4})(\d{2})(\d{2})$/);       if(m) return {d:+m[3], m:+m[2], y:+m[1]};   // CII format 102
+  return pd(s)||null;
+}
+/** OIB iz polja koja znaju imati prefiks države ili sheme: „HR05273526923", „9934:05273526923" */
+function xOib(s){
+  const m=String(s==null?'':s).toUpperCase().replace(/[\s-]/g,'').match(/(\d{11})$/);
+  return (m && oibValid(m[1])) ? m[1] : '';
+}
+
+/** XML → stavka. Baca grešku ako datoteka nije e-račun. */
+function eRacun(text, fname){
+  const doc=new DOMParser().parseFromString(text,'application/xml');
+  if(doc.getElementsByTagName('parsererror').length) throw new Error('XML nije ispravan');
+  const R=doc.documentElement;
+  if(!R) throw new Error('prazan XML');
+  const kor=xLok(R);
+  if(kor==='Invoice' || kor==='CreditNote')  return eRacunUbl(R, kor, fname);
+  if(kor==='CrossIndustryInvoice')           return eRacunCii(R, fname);
+  throw new Error('nije e-račun (korijenski element: '+kor+')');
+}
+
+/* ── UBL 2.1 — ovo šalju hrvatski posrednici po HR CIUS-u ─────────────────── */
+function eRacunUbl(R, kor, fname){
+  const dt  = xDat(xPrvi(R,['cbc:IssueDate','cbc:TaxPointDate']));
+  let   rok = xDat(xPrvi(R,['cbc:DueDate','cac:PaymentMeans/cbc:PaymentDueDate','cac:PaymentTerms/cbc:PaymentDueDate']));
+  const plat= xBroj(xTxt(R,'cac:LegalMonetaryTotal/cbc:PayableAmount'));
+  const sPdv= xBroj(xTxt(R,'cac:LegalMonetaryTotal/cbc:TaxInclusiveAmount'));
+  const tip = xPrvi(R,['cbc:InvoiceTypeCode','cbc:CreditNoteTypeCode']);
+  return eRacunIt({
+    file:fname, std:'UBL 2.1',
+    broj: xTxt(R,'cbc:ID'),
+    dt:dt, rok:rok,
+    cur:  xTxt(R,'cbc:DocumentCurrencyCode') || 'EUR',
+    sup:  xPrvi(R,['cac:AccountingSupplierParty/cac:Party/cac:PartyName/cbc:Name',
+                   'cac:AccountingSupplierParty/cac:Party/cac:PartyLegalEntity/cbc:RegistrationName']),
+    oib:  xOib(xPrvi(R,['cac:AccountingSupplierParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID',
+                        'cac:AccountingSupplierParty/cac:Party/cac:PartyLegalEntity/cbc:CompanyID',
+                        'cac:AccountingSupplierParty/cac:Party/cbc:EndpointID',
+                        'cac:AccountingSupplierParty/cac:Party/cac:PartyIdentification/cbc:ID'])),
+    koib: xOib(xPrvi(R,['cac:AccountingCustomerParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID',
+                        'cac:AccountingCustomerParty/cac:Party/cac:PartyLegalEntity/cbc:CompanyID',
+                        'cac:AccountingCustomerParty/cac:Party/cbc:EndpointID',
+                        'cac:AccountingCustomerParty/cac:Party/cac:PartyIdentification/cbc:ID'])),
+    amt:  plat || sPdv,
+    sPdv: sPdv,
+    base: xBroj(xTxt(R,'cac:LegalMonetaryTotal/cbc:TaxExclusiveAmount')),
+    vat:  xBroj(xTxt(R,'cac:TaxTotal/cbc:TaxAmount')),
+    odobr: kor==='CreditNote' || tip==='381' || tip==='383'
+  });
+}
+
+/* ── UN/CEFACT CII — rjeđe, ali standard ga dopušta ───────────────────────── */
+function eRacunCii(R, fname){
+  const H='rsm:ExchangedDocument', T='rsm:SupplyChainTradeTransaction';
+  const A=T+'/ram:ApplicableHeaderTradeAgreement', S=T+'/ram:ApplicableHeaderTradeSettlement';
+  const M=S+'/ram:SpecifiedTradeSettlementHeaderMonetarySummation';
+  const tip=xTxt(R,H+'/ram:TypeCode');
+  return eRacunIt({
+    file:fname, std:'UN/CEFACT CII',
+    broj: xTxt(R,H+'/ram:ID'),
+    dt:   xDat(xTxt(R,H+'/ram:IssueDateTime/udt:DateTimeString')),
+    rok:  xDat(xTxt(R,S+'/ram:SpecifiedTradePaymentTerms/ram:DueDateDateTime/udt:DateTimeString')),
+    cur:  xTxt(R,S+'/ram:InvoiceCurrencyCode') || 'EUR',
+    sup:  xTxt(R,A+'/ram:SellerTradeParty/ram:Name'),
+    oib:  xOib(xPrvi(R,[A+'/ram:SellerTradeParty/ram:SpecifiedTaxRegistration/ram:ID',
+                        A+'/ram:SellerTradeParty/ram:ID'])),
+    koib: xOib(xPrvi(R,[A+'/ram:BuyerTradeParty/ram:SpecifiedTaxRegistration/ram:ID',
+                        A+'/ram:BuyerTradeParty/ram:ID'])),
+    amt:  xBroj(xTxt(R,M+'/ram:DuePayableAmount')) || xBroj(xTxt(R,M+'/ram:GrandTotalAmount')),
+    sPdv: xBroj(xTxt(R,M+'/ram:GrandTotalAmount')),
+    base: xBroj(xTxt(R,M+'/ram:TaxBasisTotalAmount')),
+    vat:  xBroj(xTxt(R,M+'/ram:TaxTotalAmount')),
+    odobr: tip==='381' || tip==='383'
+  });
+}
+
+/** Zajednički dio: kategorija, provjere i upozorenja — isto kao kod PDF-a */
+function eRacunIt(p){
+  const S=D.settings||{};
+  const sup=String(p.sup||'').trim().slice(0,70), broj=String(p.broj||'').trim();
+  const dt=p.dt;
+  let rok=p.rok;
+  if(rok && dt && dnum(rok)<dnum(dt)) rok=null;
+  const amt=Math.round((p.amt||0)*100)/100;
+  const desc=(sup||'(nepoznat dobavljač)')+(broj?' RN.BR:'+broj:'');
+  const cls=classify(sup||p.file,'out');
+  /* ponuđeni iznosi ispod retka — ako PayableAmount nije ono što treba knjižiti */
+  const kand=[p.sPdv, p.base].map(v=>Math.round((v||0)*100)/100)
+    .filter((v,i,a)=>v>0 && Math.abs(v-amt)>0.005 && a.indexOf(v)===i);
+  const it={
+    id:uid(), file:p.file, sup:sup, oib:p.oib||'', broj:broj,
+    dt:dt, dts:dt?fmtDY(dt):'', rok:rok, v:rok?fmtD(rok):'',
+    amt:amt, cur:p.cur||'EUR', izvor:'e-račun', base:p.base||null, vat:Math.round((p.vat||0)*100)/100,
+    kand:kand, desc:desc, cat:cls.cat, conf:cls.conf, flag:cls.flag,
+    use:true, predracun:false, eracun:p.std,
+    mi: dt ? dt.m-1 : null,
+    problemi:[]
+  };
+  if(!sup)  it.problemi.push('dobavljač nije prepoznat');
+  if(!dt)   it.problemi.push('datum računa nije pronađen');
+  else if(dt.y!==YEAR) it.problemi.push('datum računa je '+fmtDY(dt)+' — knjiga je za '+YEAR+'.');
+  if(!amt)  it.problemi.push('iznos nije pronađen');
+  /* plativo ≠ s PDV-om znači predujam ili odbitak — trošak je možda veći od plaćanja */
+  else if(p.sPdv && Math.abs(p.sPdv-amt)>0.01)
+    it.problemi.push('za platiti '+nf2(amt)+', a ukupno s PDV-om '+nf2(p.sPdv)+' — provjeri koji iznos knjižiš');
+  if(it.cur!=='EUR') it.problemi.push('račun je u '+it.cur+' — upiši iznos u EUR s izvoda');
+  if(!rok)  it.problemi.push('rok plaćanja nije pronađen');
+  if(p.odobr) it.problemi.push('ovo je odobrenje / storno — ako umanjuje trošak, upiši iznos s minusom');
+  /* pogrešno adresiran račun, ili vlastiti izlazni račun uplodan među ulazne */
+  if(S.oib && p.oib && p.oib===S.oib) it.problemi.push('dobavljač je naša tvrtka — ovo je izlazni, a ne ulazni račun');
+  else if(S.oib && p.koib && p.koib!==S.oib) it.problemi.push('račun ne glasi na naš OIB (kupac: '+p.koib+')');
+  ulzDup(it);
   return it;
 }
 
@@ -5741,9 +5890,16 @@ async function ulzFiles(files){
   for(const f of files){
     try{
       const ext=(f.name.split('.').pop()||'').toLowerCase();
-      let lines;
-      if(ext==='pdf') lines=await pdfLines(await f.arrayBuffer());
-      else            lines=textLines(await f.text());
+      if(ext==='pdf'){
+        const lines=await pdfLines(await f.arrayBuffer());
+        if(!lines.length) throw new Error('prazan dokument');
+        items.push(ulzParse(lines, f.name));
+        continue;
+      }
+      const txt=await f.text();
+      /* e-račun u XML-u — i kad stigne pod drugom nastavkom, prepoznaje se po korijenu */
+      if(ext==='xml' || RE_ERACUN.test(txt)){ items.push(eRacun(txt, f.name)); continue; }
+      const lines=textLines(txt);
       if(!lines.length) throw new Error('prazan dokument');
       items.push(ulzParse(lines, f.name));
     }catch(e){ greske.push(f.name+': '+(e.message||e)); }
@@ -5793,11 +5949,12 @@ function ulzRender(){
     const st = it.dup==='tocno' ? '<span class="bdg wrn">već uneseno</span>'
       : it.dup==='mozda' ? '<span class="bdg wrn">isti dan i iznos</span>'
       : it.problemi.length ? '<span class="bdg neg">provjeri</span>'
+      : it.eracun ? '<span class="bdg pos" title="Podaci pročitani iz e-računa ('+esc(it.eracun)+') — nije bilo pogađanja">e-račun</span>'
       : it.conf==='nauceno' ? '<span class="bdg pos">naučeno</span>'
       : it.conf==='visoka' ? '<span class="bdg pos">visoka</span>' : '<span class="bdg inf">'+esc(it.conf||'srednja')+'</span>';
     h.push('<tr'+(it.dup==='tocno'?' style="opacity:.62"':'')+'>'
       +'<td><input type="checkbox" style="width:15px;height:15px;accent-color:var(--nav-600)" '+(it.use?'checked':'')+' onchange="ulzUse(\''+it.id+'\',this.checked)"></td>'
-      +'<td class="l">'+inp('sup',it.sup,180,'font-weight:600')+'<div class="txt-mut" style="font-size:10px;margin-top:2px">'+esc(it.file)+(it.oib?' · OIB '+esc(it.oib):'')+'</div></td>'
+      +'<td class="l">'+inp('sup',it.sup,180,'font-weight:600')+'<div class="txt-mut" style="font-size:10px;margin-top:2px">'+esc(it.file)+(it.oib?' · OIB '+esc(it.oib):'')+(it.eracun?' · '+esc(it.eracun):'')+'</div></td>'
       +'<td class="l">'+inp('broj',it.broj,108)+'</td>'
       +'<td>'+inp('dt',it.dts,88)+'</td>'
       +'<td><select onchange="ulzMi(\''+it.id+'\',this.selectedIndex)" style="font-size:11px;padding:4px 5px;width:78px">'
@@ -5877,15 +6034,17 @@ function viewUlz(){
   const h=[];
   h.push('<div class="grid g2" style="align-items:start">');
   h.push('<div class="card"><div class="card-h"><div style="flex:1"><div class="card-t">Uvoz ulaznih računa</div>'
-    +'<div class="card-sub">Računi dobavljača u PDF-u — knjiže se na datum računa s rokom plaćanja, bez datuma plaćanja</div></div></div>'
+    +'<div class="card-sub">Računi dobavljača u XML-u ili PDF-u — knjiže se na datum računa s rokom plaćanja, bez datuma plaćanja</div></div></div>'
     +'<div class="card-b">'
     +'<div class="dz" id="udz">'+IC.file+'<div class="dz-t">Povuci račune dobavljača ovdje</div>'
-    +'<div class="dz-s">možeš odabrati više PDF-ova odjednom — svaki je jedan račun</div></div>'
-    +'<input type="file" id="udzInp" accept=".pdf,.txt" multiple style="display:none">'
+    +'<div class="dz-s">e-račun (XML) ili PDF — možeš odabrati više odjednom, svaki je jedan račun</div></div>'
+    +'<input type="file" id="udzInp" accept=".xml,.pdf,.txt,.html" multiple style="display:none">'
     +'<div id="ulzStatus" style="margin-top:12px"></div>'
     +'<div class="alert i" style="margin-top:14px"><div class="alert-i">'+IC.info+'</div><div>'
     +'<div class="alert-t">Kako radi</div><div class="alert-b">'
     +'Iz računa se čitaju dobavljač (po OIB-u), broj računa, datum, rok plaćanja i ukupan iznos s PDV-om. '
+    +'<strong>Ako imaš e-račun u XML-u, njega povuci umjesto PDF-a</strong> — tamo svaki podatak stoji u svom polju, '
+    +'pa se čita točno, bez pogađanja po rasporedu stranice. '
     +'Kategorija se određuje po dobavljaču — prvi put je ispraviš, aplikacija zapamti. '
     +'Račun čeka u Dospijećima dok uvoz izvoda ne nađe plaćanje i upiše datum u PLAĆENO.</div></div></div>'
     +'</div></div>');
