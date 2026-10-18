@@ -535,8 +535,8 @@ const SEED={"rows":[{"k":"prihodi_grupe","l":"PRIHODI GRUPE","s":"prihod"},{"k":
 
 /* Oznaka verzije — podiže se pri svakoj objavi, da se na prvi pogled vidi je li
    u pregledniku nova datoteka. Prikazuje se pod nazivom tvrtke i u Postavkama. */
-const VER   = '1.0.0';
-const VERD  = '02.10.2026.';
+const VER   = '1.0.1';
+const VERD  = '18.10.2026.';
 
 const KEY   = 'dysrdg_v1';       // osnovni ključ; ostale godine: KEY_<godina>
 let   DKEY  = KEY;               // ključ aktivne godine
@@ -1107,13 +1107,23 @@ function learn(desc, cat, dir){
   D.rules.push(r);
   return r;
 }
-/** Iz punog opisa izvlači stabilan ključ: naziv partnera bez brojeva računa */
+/** Iz punog opisa izvlači stabilan ključ: naziv partnera bez brojeva računa.
+ *  Ključ MORA doslovno stajati u opisu — prepoznavanje radi preko indexOf, pa bi
+ *  ključ sastavljen od riječi koje u opisu nisu jedna do druge („APPLE STORE I STYLE"
+ *  → „APPLE STORE STYLE") bio zapamćen, a nikad pronađen. Zato se uzimaju tri
+ *  UZASTOPNE riječi i rezultat se provjerava u samom opisu. */
 function ruleKeyFrom(desc){
-  let t = norm(desc);
+  const full = norm(desc);
+  let t = full;
   t = t.replace(/RN\.?\s?BR\.?:?.*/,'').replace(/RN:.*/,'').replace(/\bR\.?BR\.?.*/,'');
   t = t.replace(/\b\d[\d.\-\/]{3,}\b/g,' ').replace(/\s+/g,' ').trim();
-  const w = t.split(' ').filter(x=>x.length>1);
-  return w.slice(0,3).join(' ').trim();
+  const w = t.split(' ').filter(Boolean);
+  let i=0; while(i<w.length && w[i].length<2) i++;      // preskoči vodeće jednoslovne riječi
+  for(let n=Math.min(3, w.length-i); n>=1; n--){
+    const k = w.slice(i, i+n).join(' ');
+    if(k.length>=3 && full.indexOf(k)>-1) return k;
+  }
+  return '';
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -4543,13 +4553,16 @@ function cfLineOf(cat, desc, isIn){
   const m=cfMap();
   return m[cat] || (isIn?'in_other':'opex_other');
 }
+/** Vraća true ako je pravilo doista spremljeno — poziv se oslanja na to da zna
+ *  smije li javiti „zapamćeno". */
 function cfLearn(desc, line){
-  const key=ruleKeyFrom(desc); if(!key||key.length<3) return;
+  const key=ruleKeyFrom(desc); if(!key||key.length<3) return false;
   D.settings.cfrules=D.settings.cfrules||[];
   const n=norm(key);
   const ex=D.settings.cfrules.find(r=>norm(r.p)===n);
   if(ex) ex.l=line;
   else D.settings.cfrules.push({id:uid(), p:key, l:line});
+  return true;
 }
 
 /* ── Tjedan ───────────────────────────────────────────────────────────────── */
@@ -4590,7 +4603,7 @@ function cfCalc(){
       const di=keys.indexOf(k); if(di<0) return;
       const line=cfLineOf(r.k, t.o, isIn);
       vals[line][di]+=a;
-      tx[line][di].push({o:t.o, a:a, cat:r.l});
+      tx[line][di].push({o:t.o, a:a, cat:r.l, k:r.k});
     }));
   });
   // Plaće su u RDG-u mjesečni iznos bez datuma — ulaze u tijek na upisani datum isplate
@@ -4896,11 +4909,24 @@ function cfDetail(lineId, dayIdx){
 function cfMove(dayIdx, itemIdx, lineId, newLine){
   const R=cfCalc(), list=(R.tx[lineId]||[])[dayIdx]||[];
   const t=list[itemIdx]; if(!t) return;
-  cfLearn(t.o, newLine);
+  const naziv=(CFL.find(x=>x.id===newLine)||{}).l||newLine;
+  const prije=JSON.stringify(D.settings.cfrules||[]);
+  const ok=cfLearn(t.o, newLine);
+  /* Provjeri da je stavka doista sjela u novi redak — da se ne javi uspjeh
+     ako je pravilo spremljeno, a prepoznavanje ga ne nalazi. */
+  const sjelo = ok && cfLineOf(t.k, t.o, false)===newLine;
+  if(!sjelo){
+    D.settings.cfrules=JSON.parse(prije);          // ništa ne ostavljaj za sobom
+    toast(ok ? 'Nije premješteno: neko tvoje ranije pravilo jače se poklapa s ovim opisom. '
+               +'Obriši ga u popisu pravila ispod tablice pa pokušaj ponovno.'
+             : 'Nije zapamćeno: opis „'+String(t.o||'').slice(0,40)+'“ nema prepoznatljiv naziv partnera. '
+               +'Dopuni opis u Transakcijama pa pokušaj ponovno.', 1);
+    return;
+  }
   save(true);
   const m=document.getElementById('cfDlg'); if(m) m.remove();
   render();
-  toast('Premješteno u „'+(CFL.find(x=>x.id===newLine)||{}).l+'“ — pravilo zapamćeno');
+  toast('Premješteno u „'+naziv+'“ — pravilo zapamćeno');
 }
 function cfDelRule(id){ D.settings.cfrules=(D.settings.cfrules||[]).filter(r=>r.id!==id); save(true); render(); }
 function cfClearRules(){ if(!confirm('Obrisati sva tvoja pravila po partneru?')) return;
