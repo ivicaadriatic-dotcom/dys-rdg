@@ -535,8 +535,8 @@ const SEED={"rows":[{"k":"prihodi_grupe","l":"PRIHODI GRUPE","s":"prihod"},{"k":
 
 /* Oznaka verzije — podiže se pri svakoj objavi, da se na prvi pogled vidi je li
    u pregledniku nova datoteka. Prikazuje se pod nazivom tvrtke i u Postavkama. */
-const VER   = '1.0.1';
-const VERD  = '18.10.2026.';
+const VER   = '1.0.2';
+const VERD  = '08.11.2026.';
 
 const KEY   = 'dysrdg_v1';       // osnovni ključ; ostale godine: KEY_<godina>
 let   DKEY  = KEY;               // ključ aktivne godine
@@ -794,12 +794,29 @@ function syncRN(){
 
 /* ── Izračun ──────────────────────────────────────────────────────────────── */
 /** Efektivna vrijednost kategorije za mjesec: transakcije imaju prednost nad ručnim unosom */
+/** Je li stavka redak plaća? Tamo mjesečni iznos dolazi iz modula Djelatnici. */
+function isPlaceRow(k){ const r=(D.rows||[]).find(x=>x.k===k); return !!r && r.s==='place'; }
+/**
+ * Mjesečni iznos stavke.
+ * Kod većine kategorija transakcije ZAMJENJUJU ručni upis — tamo se ionako sve
+ * knjiži kroz transakcije. Kod plaća je drukčije: mjesečni iznos dolazi iz
+ * Djelatnika, a transakcija u tom retku (dnevnica i slično) je DODATAK, pa se
+ * zbraja. Bez toga je jedna dnevnica od 15,00 brisala cijelu mjesečnu plaću
+ * te kategorije iz Računa D i G i iz cash flowa.
+ */
 function val(k,i){
   const tx=(D.td[k]&&D.td[k][i])||[];
-  if(tx.length) return tx.reduce((s,t)=>s+(Number(t.a)||0),0);
-  return Number((D.p[k]||[])[i])||0;
+  const s=tx.reduce((a,t)=>a+(Number(t.a)||0),0);
+  const man=Number((D.p[k]||[])[i])||0;
+  if(isPlaceRow(k)) return man+s;
+  return tx.length ? s : man;
 }
 function fromTx(k,i){ return !!((D.td[k]&&D.td[k][i])||[]).length; }
+/** Bruto plaće mjeseca iz Djelatnika — bez dnevnica, one ulaze kao transakcije. */
+function placeAmt(mi){
+  return (D.rows||[]).filter(r=>r.s==='place')
+    .reduce((s,r)=>s+(Number((D.p[r.k]||[])[mi])||0),0);
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    FINANCIRANJE
@@ -3137,7 +3154,11 @@ function viewRDG(EXP){
         +'<span style="font-weight:550;cursor:pointer" onclick="go(\'cat\');CAT=\''+r.k+'\';render()" title="Otvori transakcije">'+esc(r.l)+'</span></div></td>'
         + MR.map((_,i)=>{
             const t=fromTx(r.k,i);
-            if(t) return '<td class="mono" style="color:'+(sec==='prihod'?'var(--pos)':'var(--tx)')+';font-weight:550" title="Zbroj '+((D.td[r.k][i]||[]).length)+' transakcija">'
+            const nT=(D.td[r.k]&&D.td[r.k][i]||[]).length;
+            const ttl = sec==='place'
+              ? 'Bruto plaće iz Djelatnika + '+nT+' transakcija u ovom retku (dnevnice i slično)'
+              : 'Zbroj '+nT+' transakcija';
+            if(t) return '<td class="mono" style="color:'+(sec==='prihod'?'var(--pos)':'var(--tx)')+';font-weight:550" title="'+ttl+'">'
               + (vals[i]?nf2(vals[i]):'—')+' <span class="bdg inf" style="font-size:8px;padding:0 3px;vertical-align:1px">T</span></td>';
             return '<td><input class="cell-inp pv" data-k="'+r.k+'" data-i="'+i+'" value="'+(vals[i]?nf2(vals[i]):'')+'" placeholder="—"></td>';
           }).join('')
@@ -4613,8 +4634,7 @@ function cfCalc(){
     const q=pd(ds); if(!q) continue;
     const k=q.y+'-'+String(q.m).padStart(2,'0')+'-'+String(q.d).padStart(2,'0');
     const di=keys.indexOf(k); if(di<0) continue;
-    let amt=0;
-    D.rows.filter(r=>r.s==='place').forEach(r=>{ if(!fromTx(r.k,mi)) amt+=Number((D.p[r.k]||[])[mi])||0; });
+    const amt=placeAmt(mi);
     if(!amt) continue;
     vals.opex_emp[di]+=amt;
     tx.opex_emp[di].push({o:'Bruto plaće za '+MN[mi], a:amt, cat:'Plaće'});
@@ -4752,7 +4772,7 @@ function viewCF(){
     +(anyPD?'<span class="bdg pos">'+IC.chk+' popunjeno</span>':'<span class="bdg wrn">nije popunjeno</span>')+'</div><div class="card-b">'
     +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px">'
     + MN.map((m,i)=>{
-        let amt=0; D.rows.filter(r=>r.s==='place').forEach(r=>{ if(!fromTx(r.k,i)) amt+=Number((D.p[r.k]||[])[i])||0; });
+        const amt=placeAmt(i);
         return '<div><label style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--tx-3);margin-bottom:4px">'
           +MR[i]+' — '+m+(amt?' <span style="color:var(--c6)">'+nfk(amt)+'</span>':'')+'</label>'
           +'<input class="pdate" data-m="'+i+'" value="'+esc(PDm[i]||'')+'" placeholder="'+(amt?'dd.mm.gggg':'nema iznosa')+'"'
@@ -4831,7 +4851,7 @@ function cfWeekNet(mon){
     const q=pd(PD[mi]); if(!q) continue;
     const k=q.y+'-'+String(q.m).padStart(2,'0')+'-'+String(q.d).padStart(2,'0');
     if(keys.indexOf(k)<0) continue;
-    let amt=0; D.rows.filter(r=>r.s==='place').forEach(r=>{ if(!fromTx(r.k,mi)) amt+=Number((D.p[r.k]||[])[mi])||0; });
+    const amt=placeAmt(mi);
     if(amt){ net-=amt; n++; }
   }
   return {net:net, n:n};
