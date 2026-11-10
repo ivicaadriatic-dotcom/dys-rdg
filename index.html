@@ -535,8 +535,8 @@ const SEED={"rows":[{"k":"prihodi_grupe","l":"PRIHODI GRUPE","s":"prihod"},{"k":
 
 /* Oznaka verzije — podiže se pri svakoj objavi, da se na prvi pogled vidi je li
    u pregledniku nova datoteka. Prikazuje se pod nazivom tvrtke i u Postavkama. */
-const VER   = '1.0.2';
-const VERD  = '08.11.2026.';
+const VER   = '1.1.0';
+const VERD  = '10.11.2026.';
 
 const KEY   = 'dysrdg_v1';       // osnovni ključ; ostale godine: KEY_<godina>
 let   DKEY  = KEY;               // ključ aktivne godine
@@ -3242,7 +3242,11 @@ function viewCat(){
   if(CATQ.trim()){ const q=norm(CATQ); rows=rows.filter(r=>norm(r.t.o).indexOf(q)>-1); }
   const tot=uk.reduce((s,r)=>s+(Number(r.t.a)||0),0);
   const isIn = row.s==='prihod';
-  const NC = god?7:6;
+  const NC = god?8:7;
+  /* Premještanje stavke u drugu kategoriju — samo unutar iste strane,
+     da trošak ne završi među prihodima. */
+  const movOpts = D.rows.filter(x=>(x.s==='prihod')===isIn)
+    .map(x=>'<option value="'+x.k+'"'+(x.k===CAT?' selected':'')+'>'+esc(x.l)+'</option>').join('');
 
   const h=[];
   h.push('<div class="card" style="margin-bottom:14px"><div class="card-b" style="padding:13px 16px">'
@@ -3270,7 +3274,8 @@ function viewCat(){
     +(god?'<th class="l" style="width:74px">Mjesec</th>':'')
     +'<th class="l" style="width:86px">Datum</th><th style="width:152px">Iznos</th>'
     +'<th class="l" style="min-width:300px">'+(isIn?'Kupac / broj računa':'Dobavljač / broj računa')+'</th>'
-    +'<th style="width:92px">Valuta pl.</th><th style="width:92px">Plaćeno</th><th style="width:38px" class="no-print"></th>'
+    +'<th style="width:92px">Valuta pl.</th><th style="width:92px">Plaćeno</th>'
+    +'<th class="l no-print" style="width:176px">Kategorija</th><th style="width:38px" class="no-print"></th>'
     +'</tr></thead><tbody>');
   if(!rows.length){
     h.push('<tr><td colspan="'+NC+'"><div class="empty">'+IC.doc+'<div class="empty-t">'+(CATQ?'Nema rezultata pretrage':god?'Nema stavki u ovoj godini':'Nema stavki u ovom mjesecu')+'</div>'
@@ -3290,11 +3295,14 @@ function viewCat(){
       +'<td><input class="cell-inp tx"'+dm+' data-f="p" value="'+esc(t.p)+'" placeholder="dd.mm." '
         +(datLoš(t.p)?'title="Datum nije čitljiv — račun se zato vodi kao neplaćen" style="color:var(--neg);font-weight:650;background:var(--neg-bg)"'
                     :'style="'+(unp?'color:var(--neg);font-weight:650':'color:var(--pos)')+'"')+'></td>'
+      +'<td class="l no-print"><select onchange="txMove('+r.i+','+r.m+',this.value)" '
+        +'title="Premjesti ovu stavku u drugu kategoriju" '
+        +'style="font-size:11px;padding:4px 6px;width:100%">'+movOpts+'</select></td>'
       +'<td class="no-print"><button class="btn sm dgr" onclick="delTx('+r.i+','+r.m+')">'+IC.x+'</button></td></tr>');
   });
   h.push('</tbody><tfoot><tr class="row-tot">'+(god?'<td></td>':'')+'<td class="l">UKUPNO</td>'
     +'<td class="mono" style="color:'+col+';font-weight:700">'+nf2(tot)+' <span class="eur">EUR</span></td>'
-    +'<td colspan="4"></td></tr></tfoot></table></div></div>');
+    +'<td colspan="5"></td></tr></tfoot></table></div></div>');
 
   setView(h.join(''),'Transakcije', catPer()+stdExport());
   const q=document.getElementById('catQ');
@@ -3653,6 +3661,27 @@ function addTx(){
   setTimeout(()=>{ const i=document.querySelectorAll('.tx[data-f="d"]'); if(i.length) i[i.length-1].focus(); },60);
 }
 function delTx(i,m){ D.td[CAT][(m===undefined?CATM:m)].splice(i,1); save(); render(); }
+/**
+ * Premješta jednu transakciju u drugu kategoriju, u isti mjesec.
+ * Zamjenjuje brisanje i ponovni upis — datum, iznos, opis i plaćanje ostaju isti.
+ */
+function txMove(i, m, k){
+  if(!k || k===CAT) return;
+  const mi = (m===undefined?CATM:m);
+  const src = (D.td[CAT]||[])[mi]||[];
+  const t = src[i];
+  if(!t) return reRender();
+  const cilj = D.rows.find(x=>x.k===k);
+  if(!cilj) return;
+  if(!D.td[k]) D.td[k]=[[],[],[],[],[],[],[],[],[],[],[],[]];
+  while(D.td[k].length<12) D.td[k].push([]);
+  src.splice(i,1);
+  D.td[k][mi].push(t);
+  /* zadrži poredak po danu, kao i kod uvoza */
+  D.td[k][mi].sort((a,b)=>{ const A=pd(a.d), B=pd(b.d); return (A?A.d:99)-(B?B.d:99); });
+  save(true); render();
+  toast('Premješteno u „'+cilj.l+'“');
+}
 function payNow(k,m,o,a){
   const arr=D.td[k][m]||[];
   const t=arr.find(x=>Math.abs((Number(x.a)||0)-a)<0.005 && (x.o||'')===o && !x.p);
